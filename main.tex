@@ -25,8 +25,35 @@
 	\mainmatter
 	
 	\chapter{Introduction}
+        Sum up the basics of an data exchange protocol. Talk about the possibilities of smart contracts, how they can realize data exchange protocols and why Bitcoin based smart contracts might be an good alternative to Ethereum based ones. 
         
+        \section{Current solutions}
+        Briefly write about the interesting fair exchange protocols I reviewed in the research phase. What is the most interesting aspect about them? What can we learn from them?
         
+        \section{Contribution}
+        Understanding  the current concept of fairness (and the problems relating to it). \\
+        What is necessary to convert a script like FairSwap onto a potentially cheaper Bitcoin variant and why it is challenging.
+        FairSwap inspired fair exchange protocol that runs cheaper on Bitcoin Script.
+
+        \section{Related Work}
+        How Bitcoin evolved to Bitcoin Cash. What are the key differences between Bitcoin, Bitcoin Cash and Ethereum in terms of smart contracts.
+    
+    \chapter{Preliminaries}
+        \section{Bitcoin Transactions}
+        A broad overview on how Bitcoin Transactions work an how they are structured.
+        
+        \section{Bitcoin Script}
+        Explain Bitcoin Script basics here. What important opcodes are there? Give tx examples.
+        
+        \section{FairSwap}
+        Explain FairSwap in more detail. What level of fairness is archived? Write about the protocols cryptography building blocks (Merkle Proofs, concise proof of misbehavior, ...). Sum up how the protocol got implemented and give a statement about its performance. Do not mention any approaches on how to move this protocol to Bitcoin yet.
+        
+        \section{Building Blocks}
+        \subsection{Merkle Tree}
+        \subsection{Lockup Tx}
+        \subsection{Claim-or-refund Tx}
+        \subsection{Refund Tx}
+
     \chapter{Fairness in Exchange Protocols}
         Bentov and Kumaresan state that a fair exchange protocol is a particular subcase of secure multiparty computation \cite{10.1007/978-3-662-44381-1_24}. Numerous multiparty computation protocols want to achieve a notion of security that is requiring a form of fairness. One common way of defining fairness, in this case, is \textit{if one party receives their expected output, then so do all} \cite{10.1007/978-3-540-79263-5_8}. Cleve showed in \cite{10.1145/12130.12168} that it is impossible to achieve this notion of fairness when there is no honest majority among the protocol participants. Let us carry this knowledge into the context of a two-party exchange protocol: At the point where there is one dishonest party involved, it is impossible to achieve the mentioned form of fairness. Consequently, it is crucial to specify acceptable alternative notions of fairness that are specially tailored for the two-party case. 
         
@@ -50,15 +77,29 @@
         
         \section{Probabilistic Fairness}
         Finally, there are Fair Exchange Protocols that merge their notion of fairness with probability. These are usually protocols that depend on techniques that offer a probability of fairness (e.g., cut-and-choose in \cite{DELGADOSEGURA2020832}) based on the chosen security parameters. This approach is challenging to classify in our existing idea of fairness. The most consistent one is that we recognize \textit{Probabilistic Fairness} as a relativization to already defined notions of fairness since most definitions can be easily shifted into a probabilistic context. Let us do this for our previously mentioned superficial notion of fairness: \textit{For an adequate security parameter k, at the end of the exchange protocol run there must be an overwhelming probability that either all parties obtain their expected information or non of the parties obtain anything.} \\
-        To further elaborate on this, we project this again on our imaginary protocol $P$. We construct a new protocol $P''$ that replaces the previous predicate $\sigma$ with a cut-and-choose procedure. $S$ now needs to provide a $D'$ that is split up into $n$ parts. $B$ chooses $k < n$ indices $K$. These indices are not known by $S$. For a successful exchange, $S$ needs to provide a $D'$ s.t. $\forall i\in K:\sigma'\left( D_{i}'\right) =1$.
+        To further elaborate on this, we project this again on our imaginary protocol $P$. We construct a new protocol $P''$ that replaces the previous predicate $\sigma$ with a cut-and-choose procedure. $S$ now needs to provide a $D'$ that is split up into $n$ parts. $B$ chooses $k < n$ indices $K$. These indices are not known by $S$. For a successful exchange, $S$ needs to provide a $D'$ s.t. $\forall i\in K:\sigma'\left( D_{i}'\right) =1$. \\
 
         
-        \section{Cryptographic Approaches to Fairness} % Fairness techniques?
-        % Gradual Release
-        % Claim-or-refund
-        % Cut-and-choose
+        %\section{Fairness techniques} 
+        % Gradiual Release, Claim-or-refund, cut-and-choose.
+        % maybe https://eprint.iacr.org/2005/370.pdf also interesting
 		
-	\chapter{...}
+	\chapter{Our construction}
+	   
+	   \section{FairSwap to Bitcoin}
+        What is necessary to move FairSwaps Ethereum implementation to Bitcoin Script and why it is not straight forward? How did we solve the problems on a high level? 
+        
+        \section{The protocol}
+        Combine the building blocks mentioned in the Preliminaries to form a formal version of the protocol.
+        
+        \section{Security and Fairness}
+	    Informal security analysis - discuss various attack vectors. Connect the findings of the Fairness section with the actual fairness of the finish protocol.
+	    
+	    \section{Implementation and Performance}
+	    
+	    
+	\chapter{Conclusion}
+    
 	
 	\newpage
     \bibliographystyle{unsrt}
