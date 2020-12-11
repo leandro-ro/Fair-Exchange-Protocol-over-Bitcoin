@@ -1,4 +1,21 @@
 \documentclass{cacthesis}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{tabularx}
+
+\newcounter{protocol}
+\newenvironment{protocol}[1]
+  {\par\addvspace{\topsep}
+   \noindent
+   \tabularx{\linewidth}{@{} X @{}}
+    \hline
+    \refstepcounter{protocol}\textbf{Protocol \theprotocol} #1 \\
+    \hline}
+  { \\
+    \hline
+   \endtabularx
+   \par\addvspace{\topsep}}
+
+\newcommand{\sbline}{\\[.5\normalbaselineskip]}% small blank line
 
 \begin{document}
 
@@ -25,18 +42,27 @@
 	\mainmatter
 	
 	\chapter{Introduction}
-        Sum up the basics of an data exchange protocol. Talk about the possibilities of smart contracts, how they can realize data exchange protocols and why Bitcoin based smart contracts might be an good alternative to Ethereum based ones. 
+        %Sum up the basics of a data exchange protocol. Talk about the possibilities of smart contracts, how they can realize data exchange protocols, and why Bitcoin based smart contracts might be a good alternative to Ethereum based ones. 
+        
+        Lets assume somebody is willing to spend money in exchange for a product. This person usually got an expectation of the product beforehand. In a traditional setting, the buyer can check for himself before paying if the product he planned to buy is actually in the expected condition. If the expectation is not met, the buyer will not pay for it, and the product could be bought by somebody else. Neither the buyer nor the merchant got a disadvantage. \\
+        This procedure is not trivially transferable to a digital setting - especially if digital goods are being sold. The buyer of a digital product $D$ still got a certain expectation - we will assume this expectation is met if the predicate $\sigma\left( D\right) =1$. The dilemma is the following: Either, the merchant needs to reveal its digital commodity $D'$ first to let the buyer check if $\sigma\left( D'\right) =1$, or the buyer needs to pay beforehand without being able to inspect $D'$. Without trust among the two parties, this is undoubtedly vulnerable to fraud. \\ 
+        One way to solve this dilemma is to introduce a middleman, some kind of Trusted Third Party (TTP) to the exchange - similar to Certification Authorities that issue digital certificates. The TTP can independently verify if the buyers expectation $\sigma$ is fulfilled and secure a fair exchange. Unfortunately, a dedicated middleman comes with significant drawbacks: Some service like this is most likely expensive, both parties need to agree on a specific one, and the availability is questionable. \\
+        Cryptocurrencies offer huge potential here, with their smart contracts imitating the middleman. The buyer and the merchant do not need to trust a single entity anymore. The only construct to trust is the decentralized blockchain of the used cryptocurrency (and the smart contracts code). The main difficulty here is that memory is financially limited on the blockchain. The naive approach of letting a smart contract evaluating sigma with the full D' is feasible if D' consists of only a few bytes but practically fail for larger files due to high fees. Using smart contracts to support the exchange of larger files requires a different protocol design - there are good solutions out there, but more on this in the next section. \\ 
+        For a fair exchange protocol deciding on a particular cryptocurrency, an important aspect is the number of users the currency got. Choosing a cryptocurrency with a big user base increases the real-life value of the protocol. The two major players here are Bitcoin and Ethereum. They both offer two completely distinct approaches when it comes to the development of "smart contracts". Ethereum, on the one hand, offers a powerful virtual machine that allows the development of complex protocols via its contract-oriented programming language. These possibilities motivate protocols to do much computation inside the smart contract, concerning high fluctuating Ethereum fees\footnote{\url{https://decrypt.co/36501/ethereum-transaction-fees-are-rising-too-high}} based on its network congestion, not necessarily a good thing. Bitcoin, on the other hand, "only" supports basic payment transactions based on a simple stack-based scripting language. Usually, fair exchange protocols utilizing Bitcoin are less efficient or lack a high fairness guarantee. \\
+        This paper aims to analyze whether it is possible to construct an efficient and cheap fair exchange protocol on top of Bitcoin. We will look into efficient Ethereum based protocols and investigate the possibility of transferring one to Bitcoin, making it accessible for a broader market.
         
         \section{Current solutions}
-        Briefly write about the interesting fair exchange protocols I reviewed in the research phase. What is the most interesting aspect about them? What can we learn from them?
+        Briefly write about the interesting fair exchange protocols I reviewed in the research phase. What is the most exciting aspect of them? What can we learn from them?
+        
+        
         
         \section{Contribution}
-        Understanding  the current concept of fairness (and the problems relating to it). \\
-        What is necessary to convert a script like FairSwap onto a potentially cheaper Bitcoin variant and why it is challenging.
+        Understanding the current concept of fairness (and the problems relating to it). \\
+        What is necessary to convert a script like FairSwap onto a potentially cheaper Bitcoin variant, and why it is challenging.
         FairSwap inspired fair exchange protocol that runs cheaper on Bitcoin Script.
 
         \section{Related Work}
-        How Bitcoin evolved to Bitcoin Cash. What are the key differences between Bitcoin, Bitcoin Cash and Ethereum in terms of smart contracts.
+        How Bitcoin evolved to Bitcoin Cash. What are the key differences between Bitcoin, Bitcoin Cash, and Ethereum in terms of smart contracts?.
     
     \chapter{Preliminaries}
         \section{Bitcoin Transactions}
@@ -85,7 +111,76 @@
         % maybe https://eprint.iacr.org/2005/370.pdf also interesting
 		
 	\chapter{Our construction}
+
+    \begin{algorithm}[H]
+    \SetAlgoLined
+     \ForEach{$i \in [c]$}{
+      $k_i = H(k \| i)$\;
+      $ex_i = k_i \oplus x_i$\;
+      }
+      $ex = (ex_1,..., ex_c)$\;
+      $M_x = $\textit{Mtree}$(x)$\;
+      $c_k = H(k)$\;
+     \Return $(ex, M_x, c_k)$\;
+
+     \caption{\textit{Encode($H, x, k$)}}
+    \end{algorithm}
+    
+    \begin{algorithm}[H]
+    \SetAlgoLined
+     \ForEach{$i \in [c]$}{
+      $k_i = H(k \| i)$\;
+      $x_i = k_i \oplus ex_i$\;
+     }
+     $x = (x_1,..., x_c)$\;
+     $M_x = $\textit{Mtree}$(x)$\;
+     \ForEach{$i \in [c]$}{
+      \If{\textit{Mproof}$(x_i, M_x) == \perp$}{
+       \Return $(x, i)$\;
+       }
+     }
+     \Return $(x, \perp)$\;
+     \caption{\textit{Decode($H, ex, k$)}}
+    \end{algorithm}
+    
+
+\begin{protocol}{Fair Exchange Protocol with honest parties}
+\textit{Inputs.} (Hash-Function, Security parameter, Number of chunks, \textit{Mroot}(x), price) = $(H, n, c, H_x, p)$
+\sbline
+\textit{Goal.} Seller $S$ receives $p$ coins from Buyer $B$ in exchange for a digital item $x$.
+\sbline
+\textit{The protocol:}
+\begin{enumerate}
+  \item \textbf{Setup.}
+  \begin{enumerate}
+    \item S generates secret key $k$ $\leftarrow$ $(0, 1)^n$ uniformly at random.
+    
+    \item S divides digital item $x$ in $c$ parts and computes $([ex], M_x, commit_k)$ $\leftarrow$ \textsf{Encode($H, [x], k$)}.
+    
+    \item S creates Locking-Transaction $LTX$ $\leftarrow$ \textsf{GenLockingTx($S_{pk}, B_{pk}, p$)} and publishes the transaction to the Blockchain.
+    
+    \item For each $i \in [c]$, S creates a new Refund Transactions $SRT_i$ $\leftarrow$ \textsf{GenRefundTx($S_{pk}, B_{pk}, H(LTX), H(ex_i), i, commit_k, p$)} $\in [SRT]$. S sends the Set of Refund Transactions $[SRT]$ to B.
+    
+    \item B evaluates \textsf{ConsistencyCheck($[SRT], H_x, p, S_{pk}, B_{pk}$)} and checks for $LTX$ on the Blockchain.
+  \end{enumerate}
+  
+  \item \textbf{Exchange.}
+  \begin{enumerate}
+    \item B creates Claim-Transaction $CTX$ $\leftarrow$ \textsf{CreateClaimTx($S_{pk}, B_{pk}, H, commit_k, p$)} and publishes it to the Blockchain.
+    
+    \item S provides $k$ to CTX (s.t. $H(k) = commit_k$) and earns p coins
+  \end{enumerate}
+  
+  \item \textbf{Data Evaluation.}
+  \begin{enumerate}
+    \item B computes $([x], i)$ $\leftarrow$ \textsf{Decode($H, [ex], k$)}. If $i = \perp$ the exchange was successful. Finally B concatenates all elements of [x] to receive x.
+  \end{enumerate}
+
+\end{enumerate}
+
+\end{protocol}
 	   
+	   \newpage
 	   \section{FairSwap to Bitcoin}
         What is necessary to move FairSwaps Ethereum implementation to Bitcoin Script and why it is not straight forward? How did we solve the problems on a high level? 
         
