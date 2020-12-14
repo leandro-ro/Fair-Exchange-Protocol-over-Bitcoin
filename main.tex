@@ -65,20 +65,33 @@
         How Bitcoin evolved to Bitcoin Cash. What are the key differences between Bitcoin, Bitcoin Cash, and Ethereum in terms of smart contracts?.
     
     \chapter{Preliminaries}
-        \section{Bitcoin Transactions}
-        A broad overview on how Bitcoin Transactions work an how they are structured.
+        \section{Bitcoin}
+        In 2008 Satoshi Nakamoto proposed the first practical decentralized peer-to-peer currency system (commonly known as "cryptocurrency"), named Bitcoin \cite{nakamoto2009bitcoin}. The premise of Bitcoin is a shared data structure maintained by a decentralized network of nodes. This data structure is made out of cryptographically chained blocks, the so-called blockchain, that miners continuously work on extending. One new block added to the blockchain allows for a certain amount of new payment transactions and simultaneously increases the integrity of the blocks before. Other cryptocurrencies might extend their blockchain differently. However, in Bitcoin's case, this \textit{proof-of-work} approach is used, such that the blockchain's integrity is guaranteed, as long as the honest nodes control more than half of the CPU power. For the computational burden the miners take, they are compensated with newly generated Bitcoins and transaction fees. The result is a self-sustaining system that is fully decentralized and trustable. From a high level, Bitcoin can be considered as an emulated trusted bank without a single entity controlling it.  The trust in Bitcoin is exceptionally high because there were practically no successful attacks yet. This fact is essential for the acceptability of a decentralized currency system because no central institution could be held liable. The users' trust rests in the \textit{proof-of-work} consensus protocol that secures the validity of transactions and prevents double-spending. \\
+        It is notable that Bitcoins blockchain only stores transactions of Bitcoins (and some metadata to secure the blockchain) and only implicitly stores the user's balances. The name Bitcoin might be misleading here because there are no actual coins, only a traceable path of transactions that originate from a miner's reward. The amount of Bitcoin one person owns can be calculated by looking at every transaction this person received but did not spend jet. If a person wants to perform a Bitcoin transaction, it needs access to at least one key pair containing one public key and one private key. The public key is essentially the person's address, which enables him/her to receive Bitcoins. The private key is needed to send Bitcoins to other users' public keys. Because everybody can create arbitrary key-pairs without providing any personal information, Bitcoin provides some anonymity for its users. \\
+        The introduction of Bitcoin, especially the blockchain concept, kickstarted many other cryptocurrencies and blockchain-based applications. Still, Bitcoin is the most widely accepted cryptocurrency and remains the largest by market capitalization\footnote{Source: \url{https://coinmarketcap.com/} (14.12.2020)} - followed by Ethereum and XRP.
+
+        \subsection{BTC Transactions}
+        Technically there are no Bitcoins, only transactions of a particular Bitcoin value that are either spent or unspent. Each new transaction needs at least one input transaction. The sum of the value of all input transactions determines the value of the new transaction. Once a transaction is published in a new block on the blockchain, its input transaction(s) are considered spent. A new transaction itself is unspent until it is again used for some other valid transaction as input. Only unspent transactions can be used as an input transaction. If one of the input transactions is already spent, the new transaction is recognized as invalid and rejected by the network. \\
+        The other two essential parts of every Bitcoin transaction are the out script and the witness. The out script contains the condition(s) that need to be fulfilled by somebody that wants to spend the transaction. The witness is the values that are given as input to the out script. Consequently, the out script is the lock of a transaction, and the witness is the key. Note that the witness inside a transaction is not related to its own out script - it is needed to unlock the out script of the input transaction(s). Therefore, if the user knows the correct values to fulfill the out script of an unspent transaction, it practically owns the particular Bitcoins. Take \ref{fig:tx1} as an example. The out script is written in Bitcoin's scripting language (see next section) and is usually utilized to perform standard payments to a single Bitcoin address (P2PKH). More complex out scripts are possible that enable payments under a wide variety of conditions, e.g., timelocks or the signatures of multiple users.
+        \begin{figure}
+          \includegraphics[width=\linewidth]{images/basic_transaction_figure.png}
+          \caption{Example of a Bitcoin transaction trace.}
+          \label{fig:tx1}
+        \end{figure}
+        \\ For an efficient transaction validity evaluation, each node stores, in addition to the blockchain (or parts of it), two transaction pools locally: The pending transaction pool and the unspent transaction pool. Pending transactions are valid transactions requested for execution but are not included in a blockchain block yet. If a node receives a new valid transaction from a user, the node puts it into its pending transaction pool and forwards it to all connected peers. Once a new block is added to the blockchain, a node deletes all transactions the new block contains from its pending transaction pool and updates its unspent transaction pool. Suppose a node wants to evaluate the validity of the input transactions of a new transaction. In that case, it checks if all input transactions are available in the unspent transaction pool - if this is not the case, the new transaction is rejected. This procedure ensures that a node does not need to search through the whole blockchain each time a new transaction is submitted. \\
+
         
-        \section{Bitcoin Script}
+        \subsection{BTC Script}
         Explain Bitcoin Script basics here. What important opcodes are there? Give tx examples.
+        \subsection{Bitcoin Cash}
+        Hard fork.
         
         \section{FairSwap}
         Explain FairSwap in more detail. What level of fairness is archived? Write about the protocols cryptography building blocks (Merkle Proofs, concise proof of misbehavior, ...). Sum up how the protocol got implemented and give a statement about its performance. Do not mention any approaches on how to move this protocol to Bitcoin yet.
         
         \section{Building Blocks}
+        \subsection{Symmetric Encryption}
         \subsection{Merkle Tree}
-        \subsection{Lockup Tx}
-        \subsection{Claim-or-refund Tx}
-        \subsection{Refund Tx}
 
     \chapter{Fairness in Exchange Protocols}
         Bentov and Kumaresan state that a fair exchange protocol is a particular subcase of secure multiparty computation \cite{10.1007/978-3-662-44381-1_24}. Numerous multiparty computation protocols want to achieve a notion of security that is requiring a form of fairness. One common way of defining fairness, in this case, is \textit{if one party receives their expected output, then so do all} \cite{10.1007/978-3-540-79263-5_8}. Cleve showed in \cite{10.1145/12130.12168} that it is impossible to achieve this notion of fairness when there is no honest majority among the protocol participants. Let us carry this knowledge into the context of a two-party exchange protocol: At the point where there is one dishonest party involved, it is impossible to achieve the mentioned form of fairness. Consequently, it is crucial to specify acceptable alternative notions of fairness that are specially tailored for the two-party case. 
@@ -111,87 +124,99 @@
         % maybe https://eprint.iacr.org/2005/370.pdf also interesting
 		
 	\chapter{Our construction}
-
-    \begin{algorithm}[H]
-    \SetAlgoLined
-     \ForEach{$i \in [c]$}{
-      $k_i = H(k \| i)$\;
-      $ex_i = k_i \oplus x_i$\;
-      }
-      $ex = (ex_1,..., ex_c)$\;
-      $M_x = $\textit{Mtree}$(x)$\;
-      $c_k = H(k)$\;
-     \Return $(ex, M_x, c_k)$\;
-
-     \caption{\textit{Encode($H, x, k$)}}
-    \end{algorithm}
-    
-    \begin{algorithm}[H]
-    \SetAlgoLined
-     \ForEach{$i \in [c]$}{
-      $k_i = H(k \| i)$\;
-      $x_i = k_i \oplus ex_i$\;
-     }
-     $x = (x_1,..., x_c)$\;
-     $M_x = $\textit{Mtree}$(x)$\;
-     \ForEach{$i \in [c]$}{
-      \If{\textit{Mproof}$(x_i, M_x) == \perp$}{
-       \Return $(x, i)$\;
-       }
-     }
-     \Return $(x, \perp)$\;
-     \caption{\textit{Decode($H, ex, k$)}}
-    \end{algorithm}
-    
-
-\begin{protocol}{Fair Exchange Protocol with honest parties}
-\textit{Inputs.} (Hash-Function, Security parameter, Number of chunks, \textit{Mroot}(x), price) = $(H, n, c, H_x, p)$
-\sbline
-\textit{Goal.} Seller $S$ receives $p$ coins from Buyer $B$ in exchange for a digital item $x$.
-\sbline
-\textit{The protocol:}
-\begin{enumerate}
-  \item \textbf{Setup.}
-  \begin{enumerate}
-    \item S generates secret key $k$ $\leftarrow$ $(0, 1)^n$ uniformly at random.
-    
-    \item S divides digital item $x$ in $c$ parts and computes $([ex], M_x, commit_k)$ $\leftarrow$ \textsf{Encode($H, [x], k$)}.
-    
-    \item S creates Locking-Transaction $LTX$ $\leftarrow$ \textsf{GenLockingTx($S_{pk}, B_{pk}, p$)} and publishes the transaction to the Blockchain.
-    
-    \item For each $i \in [c]$, S creates a new Refund Transactions $SRT_i$ $\leftarrow$ \textsf{GenRefundTx($S_{pk}, B_{pk}, H(LTX), H(ex_i), i, commit_k, p$)} $\in [SRT]$. S sends the Set of Refund Transactions $[SRT]$ to B.
-    
-    \item B evaluates \textsf{ConsistencyCheck($[SRT], H_x, p, S_{pk}, B_{pk}$)} and checks for $LTX$ on the Blockchain.
-  \end{enumerate}
-  
-  \item \textbf{Exchange.}
-  \begin{enumerate}
-    \item B creates Claim-Transaction $CTX$ $\leftarrow$ \textsf{CreateClaimTx($S_{pk}, B_{pk}, H, commit_k, p$)} and publishes it to the Blockchain.
-    
-    \item S provides $k$ to CTX (s.t. $H(k) = commit_k$) and earns p coins
-  \end{enumerate}
-  
-  \item \textbf{Data Evaluation.}
-  \begin{enumerate}
-    \item B computes $([x], i)$ $\leftarrow$ \textsf{Decode($H, [ex], k$)}. If $i = \perp$ the exchange was successful. Finally B concatenates all elements of [x] to receive x.
-  \end{enumerate}
-
-\end{enumerate}
-
-\end{protocol}
 	   
 	   \newpage
 	   \section{FairSwap to Bitcoin}
         What is necessary to move FairSwaps Ethereum implementation to Bitcoin Script and why it is not straight forward? How did we solve the problems on a high level? 
         
+        \subsection{Merkle Tree based Refund Transactions}
+        De facto a single valid Refund Transaction is an concise proof of misbehavior. Additionally introduce the Lockup Tx here.
+        
+        \subsection{Key Exchange Transaction}
+        De facto a single valid Refund Transaction is an concise proof of misbehavior.
+        
         \section{The protocol}
         Combine the building blocks mentioned in the Preliminaries to form a formal version of the protocol.
+                    \begin{algorithm}[H]
+            \SetAlgoLined
+             \ForEach{$i \in [c]$}{
+              $k_i = H(k \| i)$\;
+              $ex_i = k_i \oplus x_i$\;
+              }
+              $ex = (ex_1,..., ex_c)$\;
+              $M_x = $\textit{Mtree}$(x)$\;
+              $c_k = H(k)$\;
+             \Return $(ex, M_x, c_k)$\;
         
-        \section{Security and Fairness}
-	    Informal security analysis - discuss various attack vectors. Connect the findings of the Fairness section with the actual fairness of the finish protocol.
+             \caption{\textit{Encode($H, x, k$)}}
+            \end{algorithm}
+            
+            \begin{algorithm}[H]
+            \SetAlgoLined
+             \ForEach{$i \in [c]$}{
+              $k_i = H(k \| i)$\;
+              $x_i = k_i \oplus ex_i$\;
+             }
+             $x = (x_1,..., x_c)$\;
+             $M_x = $\textit{Mtree}$(x)$\;
+             \ForEach{$i \in [c]$}{
+              \If{\textit{Mproof}$(x_i, M_x) == \perp$}{
+               \Return $(x, i)$\;
+               }
+             }
+             \Return $(x, \perp)$\;
+             \caption{\textit{Decode($H, ex, k$)}}
+            \end{algorithm}
+            
+        
+        \begin{protocol}{Fair Exchange Protocol with honest parties}
+        \textit{Inputs.} (Hash-Function, Security parameter, Number of chunks, \textit{Mroot}(x), price) = $(H, n, c, H_x, p)$
+        \sbline
+        \textit{Goal.} Seller $S$ receives $p$ coins from Buyer $B$ in exchange for a digital item $x$.
+        \sbline
+        \textit{The protocol:}
+        \begin{enumerate}
+          \item \textbf{Setup.}
+          \begin{enumerate}
+            \item S generates secret key $k$ $\leftarrow$ $(0, 1)^n$ uniformly at random.
+            
+            \item S divides digital item $x$ in $c$ parts and computes $([ex], M_x, commit_k)$ $\leftarrow$ \textsf{Encode($H, [x], k$)}.
+            
+            \item S creates Locking-Transaction $LTX$ $\leftarrow$ \textsf{GenLockingTx($S_{pk}, B_{pk}, p$)} and publishes the transaction to the Blockchain.
+            
+            \item For each $i \in [c]$, S creates a new Refund Transactions $SRT_i$ $\leftarrow$ \textsf{GenRefundTx($S_{pk}, B_{pk}, H(LTX), H(ex_i), i, commit_k, p$)} $\in [SRT]$. S sends the Set of Refund Transactions $[SRT]$ to B.
+            
+            \item B evaluates \textsf{ConsistencyCheck($[SRT], H_x, p, S_{pk}, B_{pk}$)} and checks for $LTX$ on the Blockchain.
+          \end{enumerate}
+          
+          \item \textbf{Exchange.}
+          \begin{enumerate}
+            \item B creates Claim-Transaction $CTX$ $\leftarrow$ \textsf{CreateClaimTx($S_{pk}, B_{pk}, H, commit_k, p$)} and publishes it to the Blockchain.
+            
+            \item S provides $k$ to CTX (s.t. $H(k) = commit_k$) and earns p coins
+          \end{enumerate}
+          
+          \item \textbf{Data Evaluation.}
+          \begin{enumerate}
+            \item B computes $([x], i)$ $\leftarrow$ \textsf{Decode($H, [ex], k$)}. If $i = \perp$ the exchange was successful. Finally B concatenates all elements of [x] to receive x.
+          \end{enumerate}
+        
+        \end{enumerate}
+        
+        \end{protocol}
+        
+        \section{Fairness discussion}
+	    Connect the findings of the Fairness section with the actual fairness of the finish protocol.
 	    
-	    \section{Implementation and Performance}
+	    \section{Security}
+	    Informal security analysis - discuss various attack vectors.
 	    
+	\chapter{Implementation}
+	    Details about the implementation
+	    \section{Tools}
+	    
+	    \section{Evaluation}
+	    Compare costs of protocol (computational costs \& fees) with FairSwap.
 	    
 	\chapter{Conclusion}
     
