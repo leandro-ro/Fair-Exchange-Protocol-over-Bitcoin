@@ -141,72 +141,83 @@
         
         \section{The protocol}
         Combine the building blocks mentioned in the Preliminaries to form a formal version of the protocol.
-                    \begin{algorithm}[H]
-            \SetAlgoLined
-             \ForEach{$i \in [c]$}{
-              $k_i = H(k \| i)$\;
-              $ex_i = k_i \oplus x_i$\;
-              }
-              $ex = (ex_1,..., ex_c)$\;
-              $M_x = $\textit{Mtree}$(x)$\;
-              $c_k = H(k)$\;
-             \Return $(ex, M_x, c_k)$\;
-        
-             \caption{\textit{Encode($H, x, k$)}}
-            \end{algorithm}
             
+
+
+            
+            
+        \begin{center}
+        \begin{tabular}{ c c }
+        \begin{minipage}[t]{3.15in}
             \begin{algorithm}[H]
-            \SetAlgoLined
-             \ForEach{$i \in [c]$}{
-              $k_i = H(k \| i)$\;
-              $x_i = k_i \oplus ex_i$\;
-             }
-             $x = (x_1,..., x_c)$\;
-             $M_x = $\textit{Mtree}$(x)$\;
-             \ForEach{$i \in [c]$}{
-              \If{\textit{Mproof}$(x_i, M_x) == \perp$}{
-               \Return $(x, i)$\;
-               }
-             }
-             \Return $(x, \perp)$\;
-             \caption{\textit{Decode($H, ex, k$)}}
+                \SetAlgoLined
+                \ForEach{$i \in [c]$}{
+                $k_i = H(k \| i)$\;
+                $ex_i = k_i \oplus x_i$\;
+                }
+                $ex = (ex_1,..., ex_c)$\;
+                $M_x = $\textit{Mtree}$(x)$\;
+                $c_k = H(k)$\;
+                \Return $(ex, M_x, c_k)$\;
+                \caption{\textit{Encode($H, x, k$)}}
             \end{algorithm}
+        \end{minipage} &  
+        \begin{minipage}[t]{3.15in}
+            \begin{algorithm}[H]
+                \SetAlgoLined
+                 \ForEach{$i \in [c]$}{
+                  $k_i = H(k \| i)$\;
+                  $x_i = k_i \oplus ex_i$\;
+                 }
+                 $x = (x_1,..., x_c)$\;
+                 $M_x = $\textit{Mtree}$(x)$\;
+                 \ForEach{$i \in [c]$}{
+                  \If{\textit{Mproof}$(x_i, M_x) == \perp$}{
+                   \Return $(x, i)$\;
+                }
+                }
+                \Return $(x, \perp)$\;
+                \caption{\textit{Decode($H, ex, k$)}}
+            \end{algorithm}
+        \end{minipage}
+        \end{tabular}
+        \end{center}
             
         
-        \begin{protocol}{Fair Exchange Protocol with honest parties}
-        \textit{Inputs.} (Hash-Function, Security parameter, Number of chunks, \textit{Mroot}(x), price) = $(H, n, c, H_x, p)$
+        \begin{protocol}{The Fair Exchange Protocol}
+        Let $H$ be an collision resistant Hash-Function, $n$ the security parameter and $m$ the chunk size. \\
         \sbline
-        \textit{Goal.} Seller $S$ receives $p$ coins from Buyer $B$ in exchange for a digital item $x$.
+        \textit{Public information.} $(H_x, p, pk_S, pk_B)$ = (\textit{Merkle-Root} of x, price, seller public-key, buyer public-key)
+        \textit{Seller S Input.} $(c, \textbf{x} = (x_1, ..., x_c) \in (\{0,1\}^m)^c)$ = (Number of chunks, item)
+        \sbline
+        \textit{Buyer B Input.} $()$
         \sbline
         \textit{The protocol:}
-        \begin{enumerate}
-          \item \textbf{Setup.}
+        \sbline
+        \textbf{Setup:}
           \begin{enumerate}
             \item S generates secret key $k$ $\leftarrow$ $(0, 1)^n$ uniformly at random.
             
-            \item S divides digital item $x$ in $c$ parts and computes $([ex], M_x, commit_k)$ $\leftarrow$ \textsf{Encode($H, [x], k$)}.
+            \item S computes $(\textbf{ex} = (ex_1, ..., ex_c), M_x, commit_k)$ $\leftarrow$ \textsf{Encode($H, $}\textbf{x}\textsf{$, k$)}.
             
-            \item S creates Locking-Transaction $LTX$ $\leftarrow$ \textsf{GenLockingTx($S_{pk}, B_{pk}, p$)} and publishes the transaction to the Blockchain.
+            \item S creates Locking-Transaction $LTX$ $\leftarrow$ \textsf{GenLockingTx($pk_S, pk_B, p$)}.
             
-            \item For each $i \in [c]$, S creates a new Refund Transactions $SRT_i$ $\leftarrow$ \textsf{GenRefundTx($S_{pk}, B_{pk}, H(LTX), H(ex_i), i, commit_k, p$)} $\in [SRT]$. S sends the Set of Refund Transactions $[SRT]$ to B.
+            \item For each $i \in (1, ..., c)$, S creates a new Refund-Transaction $SRT_i$ $\leftarrow$ \textsf{GenRefundTx($pk_S, pk_B, H(LTX), H(ex_i), i, commit_k, p$)}. S sends the set of Refund-Transactions $\textbf{SRT} = (SRT_1, ..., SRT_c)$ to B and publishes $LTX$ with \textsf{BC.post($LTX$)}
             
-            \item B evaluates \textsf{ConsistencyCheck($[SRT], H_x, p, S_{pk}, B_{pk}$)} and checks for $LTX$ on the Blockchain.
+            \item B evaluates \textsf{BC.isUnspend($LTX$)} and \textsf{LockingTxCheck($LTX$)}. Additionally B runs \textsf{ConsistencyCheck(}$\textbf{SRT}$\textsf{$, H(LTX), H_x, p, S_{pk}, B_{pk}$)}. If one or more of the three checks fail, abort the protocol.
           \end{enumerate}
           
-          \item \textbf{Exchange.}
+          \textbf{Exchange:}
           \begin{enumerate}
-            \item B creates Claim-Transaction $CTX$ $\leftarrow$ \textsf{CreateClaimTx($S_{pk}, B_{pk}, H, commit_k, p$)} and publishes it to the Blockchain.
+            \item B creates Claim-Transaction $CTX$ $\leftarrow$ \textsf{CreateClaimTx($pk_S, pk_B, H, commit_k, p$)} and publishes it to the Blockchain.
             
-            \item S provides $k$ to CTX (s.t. $H(k) = commit_k$) and earns p coins
+            \item S claims $CTX$ by providing $k$ s.t. $H(k) = commit_k$ and earns p coins. If $CTX$ not published in time, reclaim $LTX$ and abort. 
           \end{enumerate}
           
-          \item \textbf{Data Evaluation.}
+          \textbf{Data Evaluation:}
           \begin{enumerate}
-            \item B computes $([x], i)$ $\leftarrow$ \textsf{Decode($H, [ex], k$)}. If $i = \perp$ the exchange was successful. Finally B concatenates all elements of [x] to receive x.
+            \item B computes $(\textbf{x}, i)$ $\leftarrow$ \textsf{Decode($H, $}\textbf{ex}\textsf{$, k$)}. If $i = \perp$ the exchange was successful and B concatenates all elements of $\textbf{x}$ and receives $x$. If $i \neq \perp$ B publishes $SRT_i$ to claim $LTX$ and the exchange failed.
           \end{enumerate}
-        
-        \end{enumerate}
-        
         \end{protocol}
         
         \section{Fairness discussion}
