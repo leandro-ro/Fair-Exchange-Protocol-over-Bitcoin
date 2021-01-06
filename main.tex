@@ -1,6 +1,13 @@
 \documentclass{cacthesis}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{tabularx}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{pifont}% http://ctan.org/pkg/pifont
+\usepackage{amssymb}% http://ctan.org/pkg/amssymb
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
 
 \newcounter{protocol}
 \newenvironment{protocol}[1]
@@ -45,18 +52,17 @@
         %Sum up the basics of a data exchange protocol. Talk about the possibilities of smart contracts, how they can realize data exchange protocols, and why Bitcoin based smart contracts might be a good alternative to Ethereum based ones. 
         
         We describe an exchange scenario, where a buyer $B$ is willing to spend money in exchange for a product offered by seller $S$. $B$ expects the product to be in a particular condition beforehand. In a traditional setting, where both parties and the product are physically available at one place, $B$ can check for himself before paying if the product he planned to buy is the way $B$ expected it to be. If the expectation is not met, $B$ will not pay for the product - if it is, the exchange can be completed with minimal risk because both parties can be held liable. Neither $B$ nor $S$ got any disadvantage. \\
-        This procedure is not trivially transferable to a digital setting - especially if digital goods are being exchanged. Digital items can be copied indefinitely and are not directly limited by supply. We assume $B$ wants to buy a digital product $d$, e.g., a song or a movie, and still got a certain expectation beforehand - this expectation is met if the predicate $\sigma\left( d\right) =1$. The dilemma is the following: Either $S$ needs to reveal its digital commodity $d'$ first to let $B$ check if $\sigma\left( d'\right) =1$, or B needs to pay beforehand without being able to inspect $d'$. Without trust among the two parties, this is undoubtedly vulnerable to fraud, and trust is not an ideal requirement in a digital setting where liability is limited. There are no security cameras, witnesses, nor is police on hand. \\ 
-        One way to solve this dilemma is to introduce a middleman, some kind of Trusted Third Party (TTP) to the exchange - similar to Certification Authorities that issue digital certificates. The TTP can independently verify if Bs expectation $\sigma$ is fulfilled and secure a fair exchange. Unfortunately, a dedicated middleman comes with significant drawbacks: A service like this is usually expensive, both parties need to agree on a specific one, and the availability is questionable. \\
+        This procedure is not trivially transferable to a digital setting - especially if digital goods are being exchanged. Digital items can be copied indefinitely and are not directly limited by supply. We assume $B$ wants to buy a digital product $d$, e.g., a song or a movie, and still got a certain expectation beforehand - this expectation is met if the predicate $\sigma\left( d\right) =1$. The dilemma is the following: Either $S$ needs to reveal its digital commodity $d'$ first to let $B$ check if $\sigma\left( d'\right) =1$, or B needs to pay beforehand without being able to inspect $d'$. Without trust among the two parties, this is undoubtedly vulnerable to fraud, and trust is not an ideal requirement in a digital setting where liability is limited. There are no security cameras, witnesses, nor is police on hand. One way to solve this dilemma is to introduce a middleman, some kind of Trusted Third Party (TTP) to the exchange - similar to Certification Authorities that issue digital certificates. The TTP can independently verify if Bs expectation $\sigma$ is fulfilled and secure a fair exchange. Unfortunately, a dedicated middleman comes with significant drawbacks: A service like this is usually expensive, both parties need to agree on a specific one, and the availability is questionable. \\\\
         Cryptocurrencies offer huge potential here, with their smart contracts imitating the middleman. A smart contract enables the transfer of money conditionally. The buyer and the merchant do not need to trust a single entity anymore. The only construct to trust is the decentralized blockchain of the used cryptocurrency that evaluates a smart contract's conditions. The main difficulty here is that memory is financially limited on the blockchain via fees. The naive approach of letting a smart contract evaluate $\sigma\left( d'\right)$, s.t. $\sigma$ is the condition to execute the monetary transfer, is only feasible if $d'$ consists of a few bytes but practically fails for larger files due to high fees - especially because digital items are usually relatively inexpensive. Another point to consider is that everything on the blockchain is public. Therefore the naive approach is surely not advantageous for $S$. Using smart contracts that support the cheap and private exchange of larger files (as an alternative to expensive TTP) requires a different protocol design - there are good solutions out there, but more on this in the next section.   \\ 
-        For a fair exchange protocol building on a particular cryptocurrency, an important aspect is the number of users the currency got. Choosing a cryptocurrency with a big user base increases the acceptance of the protocol. The most prominent technologies here are Bitcoin and Ethereum. They both offer two completely distinct approaches when it comes to the construction of smart contracts. Ethereum, on the one hand, offers a powerful virtual machine that enables the formulation of complex conditions and, therefore, powerful protocols via its statically-typed and object-oriented programming language. On the other hand, Bitcoin only supports basic payment transactions based on a simple stack-based scripting language. Usually, fair exchange protocols utilizing Bitcoin are less efficient or lack a high fairness guarantee. \\
+        For a fair exchange protocol building on a particular cryptocurrency, an important aspect is the number of users the currency got. Choosing a cryptocurrency with a big user base increases the acceptance of the protocol. The most prominent technologies here are Bitcoin\footnote{https://bitcoin.org/en/} and Ethereum\footnote{https://ethereum.org/en/}. They both offer two completely distinct approaches when it comes to the construction of smart contracts. Ethereum, on the one hand, offers a powerful virtual machine that enables the formulation of complex conditions and, therefore, powerful protocols via its statically-typed and object-oriented programming language. On the other hand, Bitcoin only supports basic payment transactions based on a simple stack-based scripting language. Usually, fair exchange protocols utilizing Bitcoin are less efficient or lack a high fairness guarantee. \\\\
         This thesis aims to analyze whether it is possible to construct an efficient and cheap fair exchange protocol on top of Bitcoin rather than most other protocols achieving these properties utilizing Ethereum. A solution is particularly interesting because it would make cheap fair exchange accessible for a broader market while potentially reducing the complexity on the blockchain itself.
         % Move this into the contribution section: Therefore, we will look into efficient Ethereum based protocols and investigate the possibility of transferring one to Bitcoin, making it accessible for a broader market.
         
         \section{Existing solutions}
         % Briefly write about the interesting fair exchange protocols I reviewed in the research phase. What is the most exciting aspect of them? What can we learn from them?
-        All efficient approaches have in common that they use the blockchain as a trusted anchor and only utilize it when necessary to minimize fees. The computation done by the participating parties locally is usually much cheaper and, therefore, preferred against expensive computation done by the smart contract. \\
-        The fair exchange protocols utilizing Bitcoin usually choose computationally demanding zero-knowledge proofs (\cite{zkcp}\cite{DELGADOSEGURA2020832}), mainly because of the limitations Bitcoins smart contracts have. Other approaches, primarily Ethereum based ones, try to avoid these computational burdens while simultaneously keeping the protocol participants' fees low. FairSwap \cite{10.1145/3243734.3243857}, for example, enables $B$ to prove misbehavior of a merchant afterward instead of checking $\sigma$ beforehand. Optimistic protocols like this one are advantageous because they usually only need to perform costly blockchain interaction if fraud is suspected, making the optimistic case very cheap. The cheap optimistic case is highly desirable, especially if there is no incentive for one of the parties to cheat. One way to remove any incentive, also concerning Denial of Service (DoS) attacks, is to introduce unavoidable penalties when misbehaving. \\
-        One crucial part of every fair exchange protocol is how to design $\sigma$, or informally speaking, the data correctness proof s.t. $B$ can verify for itself that the product advertised by $S$ is the expected one. Different approaches do this either before or after the data exchange. Delagado et al. use a cut-and-choose technique in the first phase of their Bitcoin-based protocol [cite Delgado], which splits the file into many single but still meaningful chunks. E.g., if $B$ expects to buy a specific movie from $S$, the movie is split up its frames. A small subset of these frames is manageable for $B$ to verify beforehand, which gives (depending on the size of the subset) $B$ the confidence to proceed in the exchange. FairSwap does this the other way around by assuming a public fingerprint is available for every digital item being exchanged. After the actual file exchange, $B$ then computes the fingerprint on his own and compares it to the public one. If they do not match, $B$ can prove this to the protocol through the smart contract and get a refund.
+        All efficient approaches to our exchange scenario have in common that they use the blockchain as a trusted anchor and only utilize it when necessary to minimize fees. The credo is that the computation done by the participating parties locally is usually much cheaper (but not necessarily negligible) and, therefore, preferred against expensive computation done by the smart contract. \\\\
+        The fair exchange protocols utilizing Bitcoin usually choose computationally demanding zero-knowledge proofs \cite{zkcp}\cite{DELGADOSEGURA2020832}, mainly because of the limitations Bitcoins smart contracts have. Other approaches, primarily Ethereum based ones, try to avoid these computational burdens while simultaneously keeping the protocol participants' fees low. FairSwap \cite{10.1145/3243734.3243857}, for example, enables $B$ to prove misbehavior of a merchant afterward instead of checking $\sigma$ beforehand. Optimistic protocols like this one are advantageous because they usually only need to perform costly blockchain interaction if fraud is suspected, making the optimistic case very cheap. The cheap optimistic case is highly desirable, especially if there is no incentive for one of the parties to cheat. One way to remove any incentive, also concerning Denial of Service (DoS) attacks, is to introduce unavoidable penalties when misbehaving. \\\\
+        The crucial part of every fair exchange protocol is how to design $\sigma$, or informally speaking, the \textit{data correctness proof} s.t. $B$ can verify for itself that the product advertised by $S$ is the expected one. Different approaches do this either before or after the data exchange. Delagado et al. use a cut-and-choose technique in the first phase of their Bitcoin-based protocol \cite{DELGADOSEGURA2020832}, which splits the file into many single but still meaningful chunks. E.g., if $B$ expects to buy a specific movie from $S$, the movie is split up into chunks of its frames. A small subset of these frames is manageable for $B$ to verify beforehand, which gives (depending on the size of the subset) $B$ the confidence to proceed in the exchange. FairSwap does this the other way around by assuming a public fingerprint is available for every digital item being exchanged. After the actual file exchange, $B$ then computes the fingerprint on his own and compares it to the public one. If they do not match, $B$ can prove this to the protocol through the (TTP imitating) smart contract and get a refund.
         
         
         
@@ -66,29 +72,74 @@
         FairSwap inspired fair exchange protocol that runs cheaper on Bitcoin Script.
 
         \section{Related Work}
-        How Bitcoin evolved to Bitcoin Cash. What are the key differences between Bitcoin, Bitcoin Cash, and Ethereum in terms of smart contracts?.
+        \label{sec:relatedWork}
+        In this section, we want to take a quick look at the properties of Bitcoin, Bitcoin Cash, and Ethereum in terms of using them as a smart contract foundation. \\
+        In contrast to Bitcoin and Bitcoin Cash, Ethereum offers the Turing-complete Ethereum Virtual Machine (EVM). It is similar to typical virtual machines like Java's JVM and can solve any (solvable considered) problem only limited by the given resources. Each EVM operation is given a certain price to calculate the fees the owner of a submitted smart contract is obliged to pay to the network. This fee is termed "gas". The most popular language utilized to write smart contracts using the EVM is Solidity\footnote{https://docs.soliditylang.org/en/v0.8.0/}. Solidity is a high-level language that is influenced by C++, Python, and JavaScript. To submit an Ethereum smart contract a special deployment transaction is published that contains the contract's bytecode but no receiver. All public functions of a smart contract are natively accessible via the Application Binary Interface (ABI). Besides interaction via the ABI, smart contracts can communicate with other smart contracts. This enables running decentralized applications with an unlimited number of participants. Because of the flexible and powerful EVM, Ethereum e.g. creates the foundation of the current surge of Decentralized Finance (DeFi) applications like Compound\footnote{http://compoundcoin.org/} and Uniswap\footnote{https://uniswap.org/}.
+        These advanced uses of smart contracts are not possible with Bitcoin. There is no turning completeness and notably, the smart contracts cannot hold any state because all data is only temporarily stored onto a stack during execution (section \ref{sec:BTC} explains this in detail). Bitcoin chose this design intentionally to allow the efficient and independent verification of transactions. Although this design is limiting the on-chain possibilities, there are certainly ways to extend these possibilities by combining transactions with off-chain logic. \\
+        Bitcoin Cash benefits from Bitcoins attributes by using the same underlying structure but enables further functionality by (re-)introducing more complex operations. Storing data on Bitcoins Cash blockchain is much cheaper and, in contrast to Bitcoin, encoding, and decoding of data is possible. There are also high-level languages available that enable state simulation, e.g. Solidity inspired CashScript\footnote{https://cashscript.org/}, to build smart contracts on top of Bitcoin Cash. \\
+        All three Cryptocurrencies come with their ups and downsides. Ethereum trades efficient validation for extensive functionality. Bitcoin focuses on a rudimentary stateless version of smart contracts to increase independence and validation efficiency. Bitcoin Cash builds on this and aims to find a compromise here.
+    
     
     \chapter{Preliminaries}
         \section{Bitcoin}
-        In 2008 Satoshi Nakamoto proposed the first practical decentralized peer-to-peer currency system (commonly known as "cryptocurrency"), named Bitcoin \cite{nakamoto2009bitcoin}. The premise of Bitcoin is a shared data structure maintained by a decentralized network of nodes. This data structure is made out of cryptographically chained blocks, the so-called blockchain, that miners continuously work on extending. One new block added to the blockchain allows for a certain amount of new payment transactions and simultaneously increases the integrity of the blocks before. Other cryptocurrencies might extend their blockchain differently. However, in Bitcoin's case, this \textit{proof-of-work} approach is used, such that the blockchain's integrity is guaranteed, as long as the honest nodes control more than half of the CPU power. For the computational burden the miners take, they are compensated with newly generated Bitcoins and transaction fees. The result is a self-sustaining system that is fully decentralized and trustable. From a high level, Bitcoin can be considered as an emulated trusted bank without a single entity controlling it.  The trust in Bitcoin is exceptionally high because there were practically no successful attacks yet. This fact is essential for the acceptability of a decentralized currency system because no central institution could be held liable. The users' trust rests in the \textit{proof-of-work} consensus protocol that secures the validity of transactions and prevents double-spending. \\
-        It is notable that Bitcoins blockchain only stores transactions of Bitcoins (and some metadata to secure the blockchain) and only implicitly stores the user's balances. The name Bitcoin might be misleading here because there are no actual coins, only a traceable path of transactions that originate from a miner's reward. The amount of Bitcoin one person owns can be calculated by looking at every transaction this person received but did not spend jet. If a person wants to perform a Bitcoin transaction, it needs access to at least one key pair containing one public key and one private key. The public key is essentially the person's address, which enables him/her to receive Bitcoins. The private key is needed to send Bitcoins to other users' public keys. Because everybody can create arbitrary key-pairs without providing any personal information, Bitcoin provides some anonymity for its users. \\
+        \label{sec:BTC}
+        In 2008 Satoshi Nakamoto proposed the first practical decentralized peer-to-peer currency system (commonly known as "cryptocurrency"), named Bitcoin (BTC) \cite{nakamoto2009bitcoin}. The premise of Bitcoin is a shared data structure maintained by a decentralized network of nodes. This data structure is made out of cryptographically chained blocks, the so-called blockchain, that miners continuously work on extending. One new block added to the blockchain allows for a certain amount of new payment transactions and simultaneously increases the integrity of the blocks before. Other cryptocurrencies might extend their blockchain differently. However, in Bitcoin's case, this \textit{proof-of-work} approach is used, such that the blockchain's integrity is guaranteed, as long as the honest nodes control more than half of the CPU power. For the computational burden the miners take, they are compensated with newly generated Bitcoins and transaction fees. The result is a self-sustaining system that is decentralized and trustable. From a high level, Bitcoin can be considered as an emulated trusted bank without a single entity controlling it. The trust in Bitcoin is high because there were practically no successful attacks yet. This fact is essential for the acceptability of a decentralized currency system because no central institution could be held liable. Simultaneously this increases the acceptance of Bitcoins blockchain to act as an TTP through smart contracts. The users' trust rests in the \textit{proof-of-work} consensus protocol that secures the validity of transactions and prevents double-spending. \\
+        It is notable that Bitcoins blockchain only stores transactions of Bitcoins (and some metadata to secure the blockchain) and only implicitly the user's balances. The name Bitcoin might be misleading here because there are no actual coins, only a traceable path of transactions that originate from a miner's reward. The amount of Bitcoin one person owns can be calculated by looking at every transaction this person received but did not spend jet. If a person wants to perform a Bitcoin transaction, it needs access to at least one key pair containing one public key and one private key. The public key is essentially the person's address, which enables him/her to receive Bitcoins. The private key is needed to send Bitcoins to other users' public keys. Because everybody can create arbitrary key-pairs without providing any personal information, Bitcoin provides some anonymity for its users. \\
         The introduction of Bitcoin, especially the blockchain concept, kickstarted many other cryptocurrencies and blockchain-based applications. Still, Bitcoin is the most widely accepted cryptocurrency and remains the largest by market capitalization\footnote{Source: \url{https://coinmarketcap.com/} (14.12.2020)} - followed by Ethereum and XRP.
 
         \subsection{BTC Transactions}
         Technically there are no Bitcoins, only transactions of a particular Bitcoin value that are either spent or unspent. Each new transaction needs at least one input transaction. The sum of the value of all input transactions determines the value of the new transaction. Once a transaction is published in a new block on the blockchain, its input transaction(s) are considered spent. A new transaction itself is unspent until it is again used for some other valid transaction as input. Only unspent transactions can be used as an input transaction. If one of the input transactions is already spent, the new transaction is recognized as invalid and rejected by the network. \\
-        The other two essential parts of every Bitcoin transaction are the out script and the witness. The out script contains the condition(s) that need to be fulfilled by somebody that wants to spend the transaction. The witness is the values that are given as input to the out script. Consequently, the out script is the lock of a transaction, and the witness is the key. Note that the witness inside a transaction is not related to its own out script - it is needed to unlock the out script of the input transaction(s). Therefore, if the user knows the correct values to fulfill the out script of an unspent transaction, it practically owns the particular Bitcoins. Take \ref{fig:tx1} as an example. The out script is written in Bitcoin's scripting language (see next section) and is usually utilized to perform standard payments to a single Bitcoin address (P2PKH). More complex out scripts are possible that enable payments under a wide variety of conditions, e.g., timelocks or the signatures of multiple users.
+        The other two essential parts of every Bitcoin transaction are the out script and the witness. The out script is an cryptographic puzzle that contains the condition(s) that need to be fulfilled by somebody that wants to spend the transaction. The witness is the values that are given as input to the out script. Consequently, the out script is the lock of a transaction, and the witness is the key. Note that the witness inside a transaction is not related to its own out script - it is needed to unlock the out script of the input transaction(s). Therefore, if the user knows the correct values to fulfill the out script of an unspent transaction, it practically owns the particular Bitcoins. Take \ref{fig:tx1} as an example. The out script is written in Bitcoin's scripting language and is usually utilized to perform standard payments to a single Bitcoin address (\textit{P2PKH}, explained in \ref{sub:BTCScript}). More complex out scripts are possible that enable payments under a wide variety of conditions, e.g., timelocks or the signatures of multiple users.
         \begin{figure}
           \includegraphics[width=\linewidth]{images/basic_transaction_figure.png}
           \caption{Example of a Bitcoin transaction trace.}
           \label{fig:tx1}
         \end{figure}
-        \\ For an efficient transaction validity evaluation, each node stores, in addition to the blockchain (or parts of it), two transaction pools locally: The pending transaction pool and the unspent transaction pool. Pending transactions are valid transactions requested for execution but are not included in a blockchain block yet. If a node receives a new valid transaction from a user, the node puts it into its pending transaction pool and forwards it to all connected peers. Once a new block is added to the blockchain, a node deletes all transactions the new block contains from its pending transaction pool and updates its unspent transaction pool. Suppose a node wants to evaluate the validity of the input transactions of a new transaction. In that case, it checks if all input transactions are available in the unspent transaction pool - if this is not the case, the new transaction is rejected. This procedure ensures that a node does not need to search through the whole blockchain each time a new transaction is submitted. \\
+        \\ For an efficient transaction validity check, each node stores, in addition to the blockchain (or checkpoints of it), two transaction pools locally: The \textit{pending transaction pool} and the \textit{unspent transaction pool}. Pending transactions are valid transactions requested for execution but are not included in a blockchain block yet. If a node receives a new valid transaction from a user, the node puts it into its \textit{pending transaction pool} and forwards it to all connected peers. Once a new block is added to the blockchain, a node deletes all transactions the new block contains from its \textit{pending transaction pool} and updates its \textit{unspent transaction pool}. Suppose a node wants to evaluate the validity of the input transactions of a new transaction. In that case, it checks if all input transactions are available in the \textit{unspent transaction pool} - if this is not the case, the new transaction is rejected. This procedure ensures that a node does not need to search through the whole blockchain each time a new transaction is submitted. \\
 
-        
         \subsection{BTC Script}
-        Explain Bitcoin Script basics here. What important opcodes are there? Give tx examples.
+        \label{sub:BTCScript}
+        
+        Bitcoin Script is the scripting language every transaction out script is formulated in. It formalizes the conditions that have to be met (given the witness as input) to spend a specific transaction. The two significant characteristics of Bitcoin Script are its turing incompleteness and the stack-based evaluation. The out script's possibilities are very limited because of the truing incompleteness (especially compared to Solidity, Ethereums solution). Loops or jumps are not possible. This property's advantage is that endless loops (or, in general, deadlocks) are being avoided. Therefore, attack vectors for DoS attacks are limited. Malicious parties cannot create complicated transactions and slow down the Bitcoin network. The stack-based approach makes a Bitcoin Script very efficient to be evaluated - especially storage wise. When running a script, its elements are pushed on and popped out of the stack in a Last In First Out (LIFO) manner. The script is written in postfix notation and processed from left to right; therefore, e.g., $3\ OP\_ADD \ 4$ will appear as $3\ 4\ OP\_ADD$. Any Bitcoin Script is considered valid if no opcode triggers any failure, and after the evaluation, the top item on the stack is true. Note that only zero, negative zero, or an empty array is interpreted as false. \\
+        Bitcoin Scripts opcodes can be divided into several categories: From constants, flow control, or stack operations over arithmetic to cryptographic ones. In table \ref{tbl:opcodes} we will list a few, to our contribution and general understanding relevant, opcodes. The full list is available at the Bitcoin Wiki\footnote{https://en.bitcoin.it/wiki/Script}. Over time, many opcodes were disabled because of security and efficiency concerns. However, it is also possible that new opcodes are added via \textit{soft forks}. A \textit{soft fork} is Bitcoin's way of improving its protocol. Anybody can propose these Bitcoin Improvement Proposals (BIP) and, if widely accepted by the network, the protocol is updated accordingly. \\\\
+        Let us showcase a very common Bitcoin Script. Most Bitcoin transactions are direct transactions from one party to another (scenarios like, e.g., in figure \ref{fig:tx1}). The out script used in these cases is the Pay to Pubkey Hash (P2PKH). Instead of including the receiver's public-key, only the hash of the receiver's public-key is deposited. The procedure supports anonymity and hinders brute-force attacks. The receiver unlocks the out script by providing his signature of the transaction and his public-key. Thereby it can be proven that the receiver owns the private-key related to the public key and indeed wants to spend this exact transaction by providing the proper signature. The P2PKH script, is available in listing \ref{lst:p2pkh}. \textit{ScriptPubKey} is representing the cryptographic puzzle itself, while \textit{scriptSig} is describing the input parameters. Figure \ref{fig:p2pkh} showcases the stack during an exemplary successful execution step-by-step. \\
+        
+        \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+        \begin{lstlisting}[language=JavaScript, basicstyle=\footnotesize, caption=Bitcoin P2PKH script, captionpos=b, backgroundcolor=\color{backcolour}, label=lst:p2pkh]
+        scriptPubKey: OP_DUP OP_HASH160 *pubKeyHash* OP_EQUALVERIFY OP_CHECKSIG
+        scriptSig: <sig> <pubKey>
+        \end{lstlisting} \\
+        
+        Besides the P2PKH script, numerous other powerful (but less popular) scripts exist. Especially interesting for exchange protocols are Hash-Lock scripts. These enable to challenge a potential receiver to provide some data that results in the hardcoded hash (in exchange for the Bitcoin value). Be aware that transactions like this are not necessarily secure on their own. A network node could theoretically drop the transaction and unlock it independently with the legitimate receiver's data. By combining the Hash-Lock script with the P2PKH script, personalizing it to the receiver, the described vulnerability is fixed. \\
+        The last necessary script we want to mention is the Hashed Timelock script. It works accordingly to the Hash-Lock script but adds a timelock. The transaction's sender can unlock the script on his own, in the case the timelock expired and the receiver did not unlock the script by providing data matching to the hash. Usually, in Bitcoin Script, timelocks are denoted by a specific block number. If this block number is reached, the timelock is triggered. Bitcoins block numbers are easy to predict because they increment by one, and usually, it takes around 10 minutes until a new block is found. \\\\
+    
+        \begin{figure}
+          \includegraphics[width=\linewidth]{images/p2pkh_execution_figure.png}
+          \caption{Stack visualization of a Bitcoin P2PKH script execution.}
+          \label{fig:p2pkh}
+        \end{figure}
+
+        \begin{center}
+            \begin{tabular}{ l | l | c | c }
+             Operation  & Description & BTC & BCH \\ 
+             \hline
+             OP\_DUP & Duplicates an element & \cmark & \cmark \\
+             OP\_HASH160 & Performs SHA-256 and then RIPEMD-160 & \cmark & \cmark  \\
+             OP\_EQUAL & Compares two values and returns 1 if equal & \cmark & \cmark \\
+             OP\_VERIFY & Marks execution as invalid if top value is not true & \cmark & \cmark \\
+             OP\_EQUALVERIFY & Performs (1) OP\_EQUAL and (2) OP\_Verify & \cmark & \cmark \\
+             OP\_CHECKSIG  & Compares the transaction hash to given signature & \cmark & \cmark \\
+             OP\_CAT  & Concatenates two elements &  \xmark & \cmark \\
+             OP\_XOR  & Calculates bitwise exclusive or & \xmark & \cmark \\
+            \end{tabular}
+            \captionof{table}{Some Bitcoin Script opcodes}
+            \label{tbl:opcodes}
+        \end{center}
+        
         \subsection{Bitcoin Cash}
-        Hard fork.
+        Bitcoin Cash is a \textit{hard fork} of Bitcoin. In contrast to the usual BIPs that are implemented via \textit{soft fork}, there is the chance that the bitcoin network is split over a major controversial BIP, which would make old blocks of the blockchain incompatible. If no agreement is achieved and enough nodes of the network support the BIP, the part of the network agreeing could choose to extend the blockchain with the new version on their own, while the other part of the network extends with the old protocol - resulting in a \textit{hard fork}. \\
+        In 2017 this happened with Bitcoin Cash emerging from Bitcoin. The aim was to increase the block size limit from 1 MB to 8 MB. Additionally, Bitcoin Cash supporters did not support various BIPs to come, most prominently BIP141\footnote{https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki} (commonly known as \textit{SegWit}). The overall goal was to increase the possible transactions per time to use the cryptocurrency as a proper replacement for traditional money and not for investment purposes. In 2018 the block size limit increased again to 32 MB, enabling the currency to theoretically perform up-to 130 transactions per second (Bitcoin manages around 5 transactions per second). Bitcoin Cash also reintroduced various Bitcoin Script opcodes that were previously disabled by BIPs in Bitcoin. For this thesis, relevant ones are noted in table \ref{tbl:opcodes}. The extended opportunities of Bitcoin Cash over Bitcoin in the context of smart contracts are laid out in section \ref{sec:relatedWork}. \\\\
+        Bitcoin Cash's fundamental advantage is the much higher throughput of transactions, which implicitly brings down the cost per transaction (= transaction fee). The general criticism is focused on the supposedly naive solution of increasing the block sizes instead of finding efficient off-chain solutions or improvements to the protocol itself. It is also noteworthy that Bitcoin's network contains many more nodes than Bitcoins Cash network and that Bitcoin enjoys a higher acceptance, therefore serves a broader marked.
         
         \section{FairSwap}
         Explain FairSwap in more detail. What level of fairness is archived? Write about the protocols cryptography building blocks (Merkle Proofs, concise proof of misbehavior, ...). Sum up how the protocol got implemented and give a statement about its performance. Do not mention any approaches on how to move this protocol to Bitcoin yet.
@@ -137,47 +188,44 @@
         De facto a single valid Refund Transaction is an concise proof of misbehavior. Additionally introduce the Lockup Tx here.
         
         \subsection{Key Exchange Transaction}
-        De facto a single valid Refund Transaction is an concise proof of misbehavior.
+        Swap key for coins.
         
         \section{The protocol}
         Combine the building blocks mentioned in the Preliminaries to form a formal version of the protocol.
-            
-
-
-            
             
         \begin{center}
         \begin{tabular}{ c c }
         \begin{minipage}[t]{3.15in}
             \begin{algorithm}[H]
                 \SetAlgoLined
-                \ForEach{$i \in [c]$}{
+                \ForEach{$i \in (1, ..., |\textbf{x}|)$}{
                 $k_i = H(k \| i)$\;
                 $ex_i = k_i \oplus x_i$\;
                 }
-                $ex = (ex_1,..., ex_c)$\;
-                $M_x = $\textit{Mtree}$(x)$\;
-                $c_k = H(k)$\;
-                \Return $(ex, M_x, c_k)$\;
-                \caption{\textit{Encode($H, x, k$)}}
+                $\textbf{ex} = (ex_1,..., ex_{|x|})$\;
+                $commit_k = H(k)$\;
+                \Return $(\textbf{ex}, commit_k)$\;
+                \caption{\textit{Encode($H, \textbf{x}, k$)}}
             \end{algorithm}
         \end{minipage} &  
         \begin{minipage}[t]{3.15in}
             \begin{algorithm}[H]
                 \SetAlgoLined
-                 \ForEach{$i \in [c]$}{
+                 \ForEach{$i \in (1, ..., |\textbf{ex}|)$}{
                   $k_i = H(k \| i)$\;
                   $x_i = k_i \oplus ex_i$\;
                  }
-                 $x = (x_1,..., x_c)$\;
-                 $M_x = $\textit{Mtree}$(x)$\;
-                 \ForEach{$i \in [c]$}{
-                  \If{\textit{Mproof}$(x_i, M_x) == \perp$}{
-                   \Return $(x, i)$\;
+                 $\textbf{x} = (x_1,..., x__{|ex|})$\;
+                 $M_x' = Root($\textit{MerkleTree}$(\textbf{x}))$\;
+                 \If{$M_x' \neq M_x$}{
+                    \ForEach{$i \in (1, ..., |\textbf{ex}|)$}{
+                        \If{$x_i \notin M_x$}{
+                            \Return $(\textbf{x}, i)$\;
+                        }
+                    }
                 }
-                }
-                \Return $(x, \perp)$\;
-                \caption{\textit{Decode($H, ex, k$)}}
+                \Return $(\textbf{x}, \perp)$\;
+                \caption{\textit{Decode($H, M_x, \textbf{ex}, k$)}}
             \end{algorithm}
         \end{minipage}
         \end{tabular}
@@ -187,7 +235,7 @@
         \begin{protocol}{The Fair Exchange Protocol}
         Let $H$ be an collision resistant Hash-Function, $n$ the security parameter and $m$ the chunk size. \\
         \sbline
-        \textit{Public information.} $(H_x, p, pk_S, pk_B)$ = (\textit{Merkle-Root} of x, price, seller public-key, buyer public-key)
+        \textit{Public information.} $(M_x, p, pk_S, pk_B)$ = (\textit{Merkle-Root} of x, price, seller public-key, buyer public-key)
         \textit{Seller S Input.} $(c, \textbf{x} = (x_1, ..., x_c) \in (\{0,1\}^m)^c)$ = (Number of chunks, item)
         \sbline
         \textit{Buyer B Input.} $()$
@@ -198,25 +246,25 @@
           \begin{enumerate}
             \item S generates secret key $k$ $\leftarrow$ $(0, 1)^n$ uniformly at random.
             
-            \item S computes $(\textbf{ex} = (ex_1, ..., ex_c), M_x, commit_k)$ $\leftarrow$ \textsf{Encode($H, $}\textbf{x}\textsf{$, k$)}.
+            \item S computes $(\textbf{ex} = (ex_1, ..., ex_c), commit_k)$ $\leftarrow$ \textsf{Encode($H, $}\textbf{x}\textsf{$, k$)}.
             
             \item S creates Locking-Transaction $LTX$ $\leftarrow$ \textsf{GenLockingTx($pk_S, pk_B, p$)}.
             
             \item For each $i \in (1, ..., c)$, S creates a new Refund-Transaction $SRT_i$ $\leftarrow$ \textsf{GenRefundTx($pk_S, pk_B, H(LTX), H(ex_i), i, commit_k, p$)}. S sends the set of Refund-Transactions $\textbf{SRT} = (SRT_1, ..., SRT_c)$ to B and publishes $LTX$ with \textsf{BC.post($LTX$)}
             
-            \item B evaluates \textsf{BC.isUnspend($LTX$)} and \textsf{LockingTxCheck($LTX$)}. Additionally B runs \textsf{ConsistencyCheck(}$\textbf{SRT}$\textsf{$, H(LTX), H_x, p, S_{pk}, B_{pk}$)}. If one or more of the three checks fail, abort the protocol.
+            \item B evaluates \textsf{ConsistencyCheck(}$\textbf{SRT}$\textsf{$, H(LTX), M_x, p, pk_S, pk_B$)} and \textsf{LockingTxCheck($LTX$)}. If one or more of the checks fail, abort the protocol.
           \end{enumerate}
           
           \textbf{Exchange:}
           \begin{enumerate}
-            \item B creates Claim-Transaction $CTX$ $\leftarrow$ \textsf{CreateClaimTx($pk_S, pk_B, H, commit_k, p$)} and publishes it to the Blockchain.
+            \item B creates Claim-Transaction $CTX$ $\leftarrow$ \textsf{CreateClaimTx($pk_S, pk_B, commit_k, p$)} and publishes it with \textsf{BC.post($CTX$)}.
             
-            \item S claims $CTX$ by providing $k$ s.t. $H(k) = commit_k$ and earns p coins. If $CTX$ not published in time, reclaim $LTX$ and abort. 
+            \item S claims $CTX$ by running \textsf{BC.claim($CTX, k$)} s.t. $H(k) = commit_k$ and earns p coins. If $CTX$ not published in time, reclaim $LTX$ via \textsf{BC.claim($LTX, \perp$)} and abort. 
           \end{enumerate}
           
           \textbf{Data Evaluation:}
           \begin{enumerate}
-            \item B computes $(\textbf{x}, i)$ $\leftarrow$ \textsf{Decode($H, $}\textbf{ex}\textsf{$, k$)}. If $i = \perp$ the exchange was successful and B concatenates all elements of $\textbf{x}$ and receives $x$. If $i \neq \perp$ B publishes $SRT_i$ to claim $LTX$ and the exchange failed.
+            \item B computes $(\textbf{x}, i)$ $\leftarrow$ \textsf{Decode($H, M_x,  $}\textbf{ex}\textsf{$, k$)}. If $i = \perp$ the exchange was successful and B concatenates all elements of $\textbf{x}$ and receives $x$. If $i \neq \perp$ B publishes $SRT_i$ via BC.post($SRT_i$) to implicitly claim $LTX$ and the exchange failed.
           \end{enumerate}
         \end{protocol}
         
