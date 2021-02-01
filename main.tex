@@ -164,7 +164,7 @@
             \label{sub:MerkleTree}
 	        The Merkle tree is a data structure that enables efficient data validation. It is a fundamental building block of many popular \textit{blockchains} like Bitcoin or Ethereum. \\
             It is also called a hash tree because it utilizes cryptographic hash functions to create a tree of hash values with data chunks as leaves. The parent nodes combine their two children by concatenating and hashing again. We give an example of a Merkle tree in figure \ref{fig:merkleTreePrelims}. The root of the Merkle tree implicitly acts as a cryptographic fingerprint of all leaves combined. Note, that we hash the leaves before we create the tree. There are versions of Merkle trees that directly concatenate the leaves. \\
-            We will use the algorithms \textsf{Mtree}, \textsf{Mproof}, and \textsf{Mverfy} also utilized by Dziembowski et al. in \cite{10.1145/3243734.3243857}. \textsf{Mtree} (Algorithm \ref{algo:Mtree}) generates the Merkle tree of a n-tuple $(x_1, ..., x_n)$. \textsf{Mproof} (Algorithm \ref{algo:Mproof}) takes value $i$ and generates the proof that $x_i$ is the $i$th leaf of \textsf{Mtree(x)}. \textsf{Mvrfy} (Algorithm \ref{algo:Mvrfy}) receives a Merkle root, a Merkle proof and a leaf and verifies if the leaf is indeed part of the corresponding Merkle tree based on the given proof.
+            We will use the algorithms \textsf{Mtree}, \textsf{Mproof}, and \textsf{Mvrfy} also utilized by Dziembowski et al. in \cite{10.1145/3243734.3243857}. \textsf{Mtree} (Algorithm \ref{algo:Mtree}) generates the Merkle tree of a n-tuple $(x_1, ..., x_n)$. \textsf{Mproof} (Algorithm \ref{algo:Mproof}) takes value $i$ and generates the proof that $x_i$ is the $i$th leaf of \textsf{Mtree(x)}. \textsf{Mvrfy} (Algorithm \ref{algo:Mvrfy}) receives a Merkle root, a Merkle proof and a leaf and verifies if the leaf is indeed part of the corresponding Merkle tree based on the given proof.
             
             \begin{figure}
             \begin{center}
@@ -188,7 +188,7 @@
                     $label(R) = H(root(v_0^l)\|root(v_0^r))$\;
                  }
                 \Return (MerkleTree $M$, Root $R$)\;
-                \caption{Merkle tree hash \\ \textit{Mtree(}Leaves \textit{$x_1, ...,x_n$)}}
+                \caption{Merkle tree hash \\ \textsf{Mtree}(Leaves \textit{$x_1, ...,x_n$})}
                 \label{algo:Mtree}
             \end{algorithm}
             \begin{algorithm}[H]
@@ -200,7 +200,7 @@
                  
                 \Return (MerkleProof $(l_1, ..., l_d)$)\;
                 
-                \caption{Merkle tree proof \\ \textit{Mproof(}MerkleTree $M$, Index $i$\textit{)}}
+                \caption{Merkle tree proof \\ \textsf{Mproof}(MerkleTree $M$, Index $i$)}
                 \label{algo:Mproof}
             \end{algorithm}
      &
@@ -222,7 +222,7 @@
                  } \Else{
                     \Return $0$\;
                  }
-                \caption{Merkle tree proof verification \\ \textit{Mvrfy(}Leave $x_i$, MerkleProof $p = (l_1, ..., l_d)$, \\ Root $h$\textit{)}}
+                \caption{Merkle tree proof verification \\ \textsf{Mvrfy}(Leave $x_i$, MerkleProof $p = (l_1, ..., l_d)$, \\ Root $h$)}
                 \label{algo:Mvrfy}
             \end{algorithm}
             
@@ -320,8 +320,59 @@
             \end{center}
         \end{figure}
         
+        \section{Algorithms}
+        
+        \subsection{Encoding}
+        Test
+        \begin{center}
+        \begin{minipage}[t]{3.15in}
+            \begin{algorithm}[H]
+                \ForEach{$i \in (1, ..., |\normalfont{\textsf{\textbf{x}}}|)$}{
+                $k_i = H(k \| i)$\;
+                $\textsf{ex}_i = k_i \oplus \textsf{x}_i$\;
+                }
+                $\textsf{\textbf{ex}} = (\textsf{ex}_1,..., \textsf{ex}_{|\textsf{x}|})$\;
+                $hash_k = H(k)$\;
+                \Return $(\textbf{ex}, hash_k)$\;
+                \caption{\textsf{Encode($\textbf{x}, k$)}}
+            \end{algorithm}
+        \end{minipage}    
+        \end{center}
+        
+        \subsection{Decoding}
+        Test
+        \begin{center}
+        \begin{minipage}[t]{3.15in}
+            \begin{algorithm}[H]
+                 \ForEach{$i \in (1, ..., |$\textsf{\textbf{ex}}$|)$}{
+                  $k_i = H(k \| i)$\;
+                  $\textsf{x}_i = k_i \oplus \textsf{ex}_i$\;
+                 }
+                 $\textsf{\textbf{x}} = (\textsf{x}_1,..., \textsf{x}_{|\textsf{\textbf{ex}}|})$\;
+                 $M_\textsf{x}' = $ \textsf{Mtree}$(\textsf{\textbf{x}})$\;
+                 \If{$root(M_{\normalfont{\textsf{x}}}') \neq root(M_{\normalfont{\textsf{x}}})$}{
+                    \ForEach{$i \in (1, ..., |\textsf{\textbf{ex}}|)$}{
+                        $p_i = $ \textsf{Mproof}$(M_\textsf{x}, i)$\;
+                        \If{\normalfont{\textsf{Mvrfy}}$(\textsf{x}_i, p_i, root(M_\textsf{x})) = 0$}{
+                            \Return $(\textsf{\textbf{x}}, i)$\;
+                        }
+                    }
+                }
+                \Return $(\textsf{\textbf{x}}, \perp)$\;
+                \caption{\textsf{Decode($\textbf{ex}, k, M_\textsf{x}$)}}
+            \end{algorithm}
+        \end{minipage}
+        \end{center}
+        
+        \subsection{Consistency Checks}
+        
+        \newpage
+        
         \section{Protocol Description}
-        Combine the building blocks mentioned in the Preliminaries to form a formal version of the protocol.
+        The protocol consists of three stages - first, the protocol setup, then the actual exchange, and finally, the data evaluation. 
+        At the beginning of the protocol execution, the seller $S$ and the buyer $B$ are aware of each other's public keys ($pk_S, pk_B$), the product's price ($p$), and the full Merkle Tree of the product $x$ ($MT_x$). $S$ inputs the product $x$, split into a $c$ tuple into the protocol. $B$ does not have any input.
+
+        
         
         \begin{figure}
             \begin{center}
@@ -330,44 +381,6 @@
               \label{fig:lockingRefundTx}
             \end{center}
             \end{figure}
-            
-        \begin{center}
-        \begin{tabular}{ c c }
-        \begin{minipage}[t]{3.15in}
-            \begin{algorithm}[H]
-                \SetAlgoLined
-                \ForEach{$i \in (1, ..., |\textbf{x}|)$}{
-                $k_i = H(k \| i)$\;
-                $ex_i = k_i \oplus x_i$\;
-                }
-                $\textbf{ex} = (ex_1,..., ex_{|x|})$\;
-                $commit_k = H(k)$\;
-                \Return $(\textbf{ex}, commit_k)$\;
-                \caption{\textit{Encode($H, \textbf{x}, k$)}}
-            \end{algorithm}
-        \end{minipage} &  
-        \begin{minipage}[t]{3.15in}
-            \begin{algorithm}[H]
-                \SetAlgoLined
-                 \ForEach{$i \in (1, ..., |\textbf{ex}|)$}{
-                  $k_i = H(k \| i)$\;
-                  $x_i = k_i \oplus ex_i$\;
-                 }
-                 $\textbf{x} = (x_1,..., x__{|ex|})$\;
-                 $M_x' = Root($\textit{MerkleTree}$(\textbf{x}))$\;
-                 \If{$M_x' \neq M_x$}{
-                    \ForEach{$i \in (1, ..., |\textbf{ex}|)$}{
-                        \If{$x_i \notin M_x$}{
-                            \Return $(\textbf{x}, i)$\;
-                        }
-                    }
-                }
-                \Return $(\textbf{x}, \perp)$\;
-                \caption{\textit{Decode($H, M_x, \textbf{ex}, k$)}}
-            \end{algorithm}
-        \end{minipage}
-        \end{tabular}
-        \end{center}
             
         
         \begin{protocol}{The Fair Exchange Protocol}
