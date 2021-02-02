@@ -70,7 +70,7 @@
         The fair exchange protocols utilizing Bitcoin usually choose computationally demanding zero-knowledge proofs \cite{zkcp}\cite{DELGADOSEGURA2020832}, mainly because of the limitations Bitcoins smart contracts have. Other approaches, primarily Ethereum based ones, try to avoid these computational burdens while simultaneously keeping the protocol participants' fees low. FairSwap \cite{10.1145/3243734.3243857}, for example, enables buyer $B$ to prove misbehavior of a merchant afterward instead of checking $\sigma$ beforehand. Optimistic protocols like this one are advantageous because they usually only need to perform costly \textit{blockchain} interaction if fraud is suspected, making the optimistic case very cheap. The cheap optimistic case is highly desirable, especially if there is no incentive for one of the parties to cheat. One way to remove any incentive, also concerning Denial of Service (DoS) attacks, is to introduce unavoidable penalties when misbehaving. \\\\
         The crucial part of every fair exchange protocol is how to design $\sigma$, or informally speaking, the \textit{data correctness proof} s.t. $B$ can verify for itself that the product advertised by $S$ is the expected one. Different approaches do this either before or after the data exchange. Delagado et al. use a cut-and-choose technique in the first phase of their Bitcoin-based protocol \cite{DELGADOSEGURA2020832}, which splits the file into many single but still meaningful chunks. E.g., if $B$ expects to buy a specific movie from $S$, the movie is split up into chunks of its frames. A small subset of these frames is manageable for $B$ to verify beforehand, which gives (depending on the size of the subset) $B$ the confidence to proceed in the exchange. FairSwap does this the other way around by assuming a public fingerprint is available for every digital item being exchanged. After the actual file exchange, $B$ then computes the fingerprint on his own and compares it to the public one. If they do not match, $B$ can prove this to the protocol through the (TTP imitating) smart contract and get a refund. Section \ref{sec:FairSwap} goes into more details on FairSwap.
 
-        \section{Smart Contract Environments}
+        \section{Environments}
         \label{sec:smartContractOptions}
         In this section, we want to take a quick look at the properties of Bitcoin, Bitcoin Cash\footnote{https://www.bitcoincash.org/}, and Ethereum in terms of using them as a smart contract foundation. \\
         In contrast to Bitcoin and Bitcoin Cash, Ethereum offers the \textit{Turing-complete} Ethereum Virtual Machine (EVM). It is similar to typical virtual machines like Java's JVM and can solve any (solvable considered) problem only limited by the given resources. Each EVM operation is given a specific price to calculate the fees the owner of a submitted smart contract must pay to the network. This fee is termed \textit{gas}, and the \textit{gas limit} restricts an Ethereum smart contract's complexity. The most popular language utilized to write smart contracts using the EVM is Solidity\footnote{https://docs.soliditylang.org/en/v0.8.0/}. Solidity is a high-level language that is influenced by C++, Python, and JavaScript. By submitting an Ethereum smart contract, a special deployment transaction is published that contains the contract's bytecode but no receiver. All public functions of a smart contract are natively accessible via the Application Binary Interface (ABI). Besides interaction via the ABI, smart contracts can communicate with other smart contracts. This enables decentralized running applications with an unlimited number of participants. Because of the flexible and powerful EVM, Ethereum, e.g., creates the foundation of the current surge of decentralized finance (DeFi) applications like Compound\footnote{http://compoundcoin.org/} and Uniswap\footnote{https://uniswap.org/}. \\
@@ -164,7 +164,7 @@
             \label{sub:MerkleTree}
 	        The Merkle tree is a data structure that enables efficient data validation. It is a fundamental building block of many popular \textit{blockchains} like Bitcoin or Ethereum. \\
             It is also called a hash tree because it utilizes cryptographic hash functions to create a tree of hash values with data chunks as leaves. The parent nodes combine their two children by concatenating and hashing again. We give an example of a Merkle tree in figure \ref{fig:merkleTreePrelims}. The root of the Merkle tree implicitly acts as a cryptographic fingerprint of all leaves combined. Note, that we hash the leaves before we create the tree. There are versions of Merkle trees that directly concatenate the leaves. \\
-            We will use the algorithms \textsf{Mtree}, \textsf{Mproof}, and \textsf{Mvrfy} also utilized by Dziembowski et al. in \cite{10.1145/3243734.3243857}. \textsf{Mtree} (Algorithm \ref{algo:Mtree}) generates the Merkle tree of a n-tuple $(x_1, ..., x_n)$. \textsf{Mproof} (Algorithm \ref{algo:Mproof}) takes value $i$ and generates the proof that $x_i$ is the $i$th leaf of \textsf{Mtree(x)}. \textsf{Mvrfy} (Algorithm \ref{algo:Mvrfy}) receives a Merkle root, a Merkle proof and a leaf and verifies if the leaf is indeed part of the corresponding Merkle tree based on the given proof.
+            We will use the algorithms \textsf{Mtree}, \textsf{Mproof}, and \textsf{Mvrfy} also utilized by Dziembowski et al. in \cite{10.1145/3243734.3243857}. \textsf{Mtree} (Algorithm \ref{algo:Mtree}) generates the Merkle tree of a n-tuple $(x_1, ..., x_n)$. \textsf{Mproof} (Algorithm \ref{algo:Mproof}) takes value $i$ and generates the proof that $x_i$ is the $i$th leaf of \textsf{Mtree(x)}. \textsf{Mvrfy} (Algorithm \ref{algo:Mvrfy}) receives a Merkle root, a Merkle proof and a leaf and verifies if the leaf is indeed part of the corresponding Merkle tree based on the given proof. 
             
             \begin{figure}
             \begin{center}
@@ -292,7 +292,7 @@
         \begin{figure}
             \begin{center}
               \includegraphics[width=0.6\textwidth]{images/GenLockingTx.png}
-              \caption{\textsf{GenLockingTx}$(hash_{inputTx}, pk_S, pk_B, t, p)$}
+              \caption{\textsf{GenLockingTx}$(pk_S, pk_B, t, p)$}
               \label{fig:genLockingTx}
             \end{center}
         \end{figure}
@@ -316,17 +316,17 @@
         \begin{figure}
             \begin{center}
               \includegraphics[width=0.6\textwidth]{images/GenKeyExchangeTx.png}
-              \caption{\textsf{GenKeyExchangeTx}$(hash_{inputTx}, pk_S, pk_B, hash_{key}, t, p)$}
+              \caption{\textsf{GenKeyExchangeTx}$(pk_S, pk_B, hash_{key}, t, p)$}
               \label{fig:genKeyExchangeTx}
             \end{center}
         \end{figure}
         
         \section{Algorithms}
-        
+        Let us define the following three utility algorithms \textsf{Encoding}, \textsf{Decoding} and \textsf{ConsistencyCheck} utilized by our protocol:
         \subsection{Encoding}
-        Test
+        The \textsf{Encoding} algorithm takes data $\textsf{\textbf{x}} = (\textsf{x}_1, ..., \textsf{x}_c) \in (\{0,1\}^m)^c$ and key $k$. Each chunk of \textsf{\textbf{x}} is encrypted according to the symmetric encryption scheme defined in \ref{sub:SymmetricEncryptionScheme}, with $i$ being the index value. Notably, each encrypted data chunk \textsf{\textbf{ex}}$_i$ got encrypted with and individual key $k_i$ dependent on its index $i$ in \textsf{\textbf{x}}. Additionally to \textsf{\textbf{ex}} this function returns the hash of $k$.
         \begin{center}
-        \begin{minipage}[t]{3.15in}
+        \begin{minipage}[t]{4in}
             \begin{algorithm}[H]
                 \ForEach{$i \in (1, ..., |\normalfont{\textsf{\textbf{x}}}|)$}{
                 $k_i = H(k \| i)$\;
@@ -341,9 +341,9 @@
         \end{center}
         
         \subsection{Decoding}
-        Test
+        The \textsf{Decoding} algorithm decrypts given $\textsf{\textbf{ex}} = (\textsf{ex}_1, ..., \textsf{ex}_c) \in (\{0,1\}^m)^c$ with $k$ on par with the Encoding algorithm. Therefore it recreates the individual keys $k_i$ from the data chunks to attain \textsf{\textbf{x}}. Additionally, the algorithm generates the Merkle tree of resulting \textsf{\textbf{x}} and compares it to the given Merkle tree  $M_\textsf{x}$. If the roots match, \textsf{\textbf{x}} is considered valid and returned. Otherwise, the first invalid chunk $i$ of \textsf{\textbf{x}} is attained through the verification of Merkle proofs. In this case, besides (invalid) \textsf{\textbf{x}},  the index $i$ is returned.
         \begin{center}
-        \begin{minipage}[t]{3.15in}
+        \begin{minipage}[t]{4in}
             \begin{algorithm}[H]
                  \ForEach{$i \in (1, ..., |$\textsf{\textbf{ex}}$|)$}{
                   $k_i = H(k \| i)$\;
@@ -365,7 +365,29 @@
         \end{minipage}
         \end{center}
         
-        \subsection{Consistency Checks}
+        \subsection{Consistency Check}
+        The \textsf{ConsistencyCheck} algorithm takes a reference set of RTX \textbf{TX} and creates another set \textbf{TX'} with the input values. If these sets are identical, the check passed, and the algorithm returns \textsf{true}. Otherwise, the algorithm returns \textsf{false}. Note, that $leaf_i$($M_x$) results in the $i$-th leaf of Merkle tree $M_x$.
+        
+        \begin{center}
+        \begin{minipage}[t]{4in}
+            \begin{algorithm}[H]
+                $c = |\textbf{TX}|$\;
+                \ForEach{$i \in (1, ..., c)$}{
+                $l_i$ = $leaf_i$($M_x$)\;
+                $TX_i$ $\leftarrow$ \textsf{GenRefundTx($hash_{tx'}, pk_S, pk_B, hash_k, l_i,\textsf{ex}_i, i, t, p$)}\;
+                }
+                
+                \textbf{TX'} $ = ( TX_1, ..., TX_c)$\;
+                
+                \If{\normalfont{\textbf{TX'} \neq \textbf{TX}}}{
+                \Return $\textsf{false}$\;
+                }
+                \Return $\textsf{true}$\;
+                
+                \caption{\\\mbox{\textsf{ConsistencyCheck(}\textbf{TX}\textsf{$, hash_{tx'}, pk_S, pk_B, hash_{k}, M_x, \textbf{\textsf{ex}}, t, p$)}}}
+            \end{algorithm}
+        \end{minipage}    
+        \end{center}
         
         \newpage
         
@@ -411,7 +433,7 @@
             
             \item Round (B)
             \begin{enumerate}
-                \item B evaluates \textsf{ConsistencyCheck(}\textbf{TX$_{{refund}}$}\textsf{$, H(TX_{lock}), M_x, p, pk_S, pk_B$)} and \textsf{IsOnLedger($TX_{lock}$)}. If one or more checks fail, B aborts and the exchange failed.
+                \item B evaluates \textsf{ConsistencyCheck(}\textbf{TX$_{{refund}}$}\textsf{$, H(TX_{lock}), pk_S, pk_B, hash_k, M_x, \textsf{\textbf{ex}}, t_{refund}, p$)} and \textsf{IsOnLedger($TX_{lock}$)}. If one or more checks fail, B aborts and the exchange failed.
                 \item If $t_{refund}$ passed, B aborts and the exchange failed.
             \end{enumerate}
             
