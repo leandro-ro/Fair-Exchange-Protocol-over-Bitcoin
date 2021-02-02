@@ -234,10 +234,11 @@
         \label{sub:Blockchain}
         
         The blockchain itself is a simple data structure consisting of cryptographically connected data chunks ("blocks"). Most prominently, it is utilized as the shared data structure of many current cryptocurrency systems like Bitcoin (cf. §\ref{sec:BTC}) to store all transactions in a decentralized ledger. Most notably, the data stored on the blockchain must be immutable to e.g., prevent double-spending or stealing of coins. It must be (negligibly) hard to replace, delete, or modify any block and, therefore, the included transactions. The chaining of blocks achieves immutability through cryptographic hash functions. We stress that the deeper a block is integrated into the (continuously extending) blockchain, the stronger is the immutability property of this particular block. E.g., in Bitcoin, it is recommended to wait for six confirmations (= six blocks) until a transaction is confidently regarded as integrated into the blockchain. \\
-        We informally construct the following two functions to provide simplified communication with the blockchain for our protocol participants. Without loss of generality, we will consider the blockchain as a trusted ledger. We assume a transaction is considered confirmed once it is accepted and integrated into this ledger. \\\\ 
-        \textsf{PublishToLedger(tx)} takes a transaction $tx$ (e.g., a Bitcoin transaction as defined in §\ref{sec:BTC}) and publishes it to the ledger. It returns \textit{true} if $tx$ was successfully added to the ledger and \textit{false} if $tx$ got rejected (e.g., because the \textit{out script} of $tx$ input transaction failed as described in §\ref{sub:BTCTx}). \\\\ 
-        \textsf{IsOnLedger(tx)} will verify if a transaction $tx$ is already integrated into the ledger. If $tx$ is additionally not spend, the function will return \textit{true}. If $tx$ is not on the ledger or is already used as input for another transaction (e.g., like $T_1$ in Figure \ref{fig:tx1}), the function will return \textit{false}.
-
+        We informally construct the following three functions to provide simplified communication with the blockchain for our protocol participants. Without loss of generality, we will consider the blockchain as a trusted ledger. We assume a transaction is considered confirmed once it is accepted and integrated into this ledger. \\\\ 
+        \textsf{PublishToLedger(tx)} takes a transaction \textsf{tx} (e.g., a Bitcoin transaction as defined in §\ref{sec:BTC}) and publishes it to the ledger. It returns \textit{true} if \textsf{tx} was successfully added to the ledger and \textit{false} if \textsf{tx} got rejected (e.g., because the \textit{out script} of \textsf{tx} input transaction failed as described in §\ref{sub:BTCTx}). For the sake of simplicity, this function does not take a witness for the input transaction of  \textsf{tx}. \\\\ 
+        \textsf{Claim(tx, [args])} creates and publishes a \textit{P2PKH} transaction with \textsf{tx} as its input transaction and the caller being the receiver. \textsf{[args]} is the witness to unlock the out script of \textsf{tx}. Therefore, the function returns \textit{true} if the out script succeeded and the caller claimed the funds locked in \textsf{tx}. The function returns \textit{false} if the out script of \textsf{tx} failed. For the sake of simplicity, we ignore signatures as arguments in \textsf{[args]}.\\\\ 
+        \textsf{IsOnLedger(tx)} verifies if a transaction \textsf{tx} is already integrated into the ledger. If \textsf{tx} is additionally not spend, the function will return \textit{true}. If \textsf{tx} is not on the ledger or is already used as input for another transaction (e.g., like $T_1$ in Figure \ref{fig:tx1}), the function will return \textit{false}.
+        
 
 
         
@@ -384,38 +385,79 @@
             
         
         \begin{protocol}{The Fair Exchange Protocol}
-        Let $H$ be an collision resistant Hash-Function, $n$ the security parameter and $m$ the chunk size. \\
+        Let $H(\cdot)$ be an collision resistant Hash-Function, $n$ the security parameter and $m$ the data chunk size. \\
+        \textit{Public information.} $(M_x, p, pk_S, pk_B, (t_{lock}, t_{refund}, t_{claim}))$ = (\textsf{MTree}(\textsf{\textbf{x}}), price, seller pk, buyer pk, timelocks) 
         \sbline
-        \textit{Public information.} $(M_x, p, pk_S, pk_B)$ = (\textit{Merkle-Root} of x, price, seller public-key, buyer public-key)
-        \textit{Seller S Input.} $(c, \textbf{x} = (x_1, ..., x_c) \in (\{0,1\}^m)^c)$ = (Number of chunks, item)
+        \textit{Seller \normalfont{S} Input.} $(\textsf{\textbf{x}} = (\textsf{x}_1, ..., \textsf{x}_c) \in (\{0,1\}^m)^c)$
         \sbline
-        \textit{Buyer B Input.} $()$
+        \textit{Buyer \normalfont{B} Input.} $()$
         \sbline
         \textit{The protocol:}
         \sbline
         \textbf{Setup:}
           \begin{enumerate}
-            \item S generates secret key $k$ $\leftarrow$ $(0, 1)^n$ uniformly at random.
+            \item Round (S)
+            \begin{enumerate}
+    	        \item S generates secret key $k$ $\leftarrow$ $\{0, 1\}^n$ uniformly at random.
             
-            \item S computes $(\textbf{ex} = (ex_1, ..., ex_c), commit_k)$ $\leftarrow$ \textsf{Encode($H, $}\textbf{x}\textsf{$, k$)}.
+                \item S computes $(\textsf{\textbf{ex}} = (\textsf{ex}_1, ..., \textsf{ex}_c), hash_k)$ $\leftarrow$ \textsf{Encode}(\textsf{\textbf{x}}$, k$).
             
-            \item S creates Locking-Transaction $LTX$ $\leftarrow$ \textsf{GenLockingTx($pk_S, pk_B, p$)}.
+                \item S creates Locking Transaction $TX_{lock}$ $\leftarrow$ \textsf{GenLockingTx($pk_S, pk_B, t_{lock}, p$)}.
             
-            \item For each $i \in (1, ..., c)$, S creates a new Refund-Transaction $SRT_i$ $\leftarrow$ \textsf{GenRefundTx($pk_S, pk_B, H(LTX), H(ex_i), i, commit_k, p$)}. S sends the set of Refund-Transactions $\textbf{SRT} = (SRT_1, ..., SRT_c)$ to B and publishes $LTX$ with \textsf{BC.post($LTX$)}
+                \item For each $i \in (1, ..., c)$, S creates a new Refund Transaction \mbox{$TX_{{refund}_i}$ $\leftarrow$ \textsf{GenRefundTx($H(TX_{lock}), pk_S, pk_B, hash_k, H(\textsf{x}_i), \textsf{ex}_i, i, t_{refund}, p$)}}.
+                
+                \item S sends the signed set \textbf{TX$_{{refund}}$} $ = ( TX_{{refund}_1}, ..., TX_{{refund}_c})$ to B and publishes $TX_{lock}$ with \textsf{PublishToLedger($TX_{lock}$)}.
+            \end{enumerate}
             
-            \item B evaluates \textsf{ConsistencyCheck(}$\textbf{SRT}$\textsf{$, H(LTX), M_x, p, pk_S, pk_B$)} and \textsf{LockingTxCheck($LTX$)}. If one or more of the checks fail, abort the protocol.
+            \item Round (B)
+            \begin{enumerate}
+                \item B evaluates \textsf{ConsistencyCheck(}\textbf{TX$_{{refund}}$}\textsf{$, H(TX_{lock}), M_x, p, pk_S, pk_B$)} and \textsf{IsOnLedger($TX_{lock}$)}. If one or more checks fail, B aborts and the exchange failed.
+                \item If $t_{refund}$ passed, B aborts and the exchange failed.
+            \end{enumerate}
+            
+          \newcounter{enumTemp}
+          \setcounter{enumTemp}{\theenumi}
           \end{enumerate}
           
           \textbf{Exchange:}
           \begin{enumerate}
-            \item B creates Claim-Transaction $CTX$ $\leftarrow$ \textsf{CreateClaimTx($pk_S, pk_B, commit_k, p$)} and publishes it with \textsf{BC.post($CTX$)}.
+          
+          \begin{enumerate}
+             \setcounter{enumii}{2}
+            \item B creates Key Exchange Transaction $TX_{exch}$ $\leftarrow$ \textsf{GenKeyExchangeTx($pk_S, pk_B, hash_k, t_{claim}, p$)}. $TX_{exch}$ is then published with \mbox{\textsf{PublishToLedger($TX_{exch}$)}}.
+          \end{enumerate}
             
-            \item S claims $CTX$ by running \textsf{BC.claim($CTX, k$)} s.t. $H(k) = commit_k$ and earns p coins. If $CTX$ not published in time, reclaim $LTX$ via \textsf{BC.claim($LTX, \perp$)} and abort. 
+            \setcounter{enumi}{\theenumTemp}
+            
+            \item Round (S)
+            
+            \begin{enumerate}
+            \item If $t_{claim}$ passed, S waits for $t_{lock}$ and reclaims $TX_{lock}$ via \textsf{Claim($TX_{lock}, \perp$)}, therefore, aborts and the exchange failed. 
+            
+            \item S claims $TX_{exch}$ by running \textsf{Claim($TX_{exch}, k$)} s.t. $H(k) = hash_k$ and earns p coins.
+            \end{enumerate}
+            
+            \item Round (B)
+            \begin{enumerate}
+            \item If $t_{claim}$ passed and $TX_{exch}$ unspent, B reclaims $TX_{exch}$ via \textsf{Claim($TX_{exch}, \perp$)}, therefore, aborts and the exchange failed. 
+            
+            \item B extracts $k$ from $TX_{exch}$ and computes $(\textsf{\textbf{x}}, i)$ $\leftarrow$ \textsf{Decode(}\textsf{\textbf{ex}}\textsf{$, k, M_x$)}. 
+            \end{enumerate}
+            
+          \newcounter{enumTemp}
+          \setcounter{enumTemp}{\theenumi}
           \end{enumerate}
           
           \textbf{Data Evaluation:}
           \begin{enumerate}
-            \item B computes $(\textbf{x}, i)$ $\leftarrow$ \textsf{Decode($H, M_x,  $}\textbf{ex}\textsf{$, k$)}. If $i = \perp$ the exchange was successful and B concatenates all elements of $\textbf{x}$ and receives $x$. If $i \neq \perp$ B publishes $SRT_i$ via BC.post($SRT_i$) to implicitly claim $LTX$ and the exchange failed.
+          \setcounter{enumi}{\theenumTemp}
+            \begin{enumerate}
+            \setcounter{enumii}{2}
+            \item If $i \neq \perp$ B publishes $TX_{{refund}_i}$ via \textsf{PublishToLedger($TX_{{refund}_i}$)} to implicitly claim $TX_{lock}$, therefore, aborts and the exchange failed. 
+            
+            \item B concatenates all elements of $\textsf{\textbf{x}}$ to attain $\textsf{x}$ and the exchange was successful.
+            \end{enumerate}
+            
           \end{enumerate}
         \end{protocol}
         
