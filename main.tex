@@ -392,8 +392,12 @@
         \newpage
         
         \section{Protocol Description}
-        The protocol consists of three stages - first, the protocol setup, then the actual exchange, and finally, the data evaluation. 
-        At the beginning of the protocol execution, the seller $S$ and the buyer $B$ are aware of each other's public keys ($pk_S, pk_B$), the product's price ($p$), and the full Merkle Tree of the product $x$ ($MT_x$). $S$ inputs the product $x$, split into a $c$ tuple into the protocol. $B$ does not have any input.
+        We realize the exchange of a product $x$ between seller $S$ and the buyer $B$ for price $p$ in protocol 1[]. For the exchange, $x$ is split up into $c$ chunks of data. We assume that $|x| = m*c $ where $m$ is representing the size of each chunk. At the beginning of the protocol, the Merkle tree of $x$ ($M_x$) is available to both parties as public knowledge. The Merkle tree leaves are the hashed chunks of $x$. Therefore, $B$ does not learn anything about $x$, besides its size. (Note that $M_x$ differs for the same $x$ if a different split $c$ is chosen.) Additionally, three (to the start time of the protocol) relative timelocks $t_{lock}, t_{refund}, t_{claim}$ are known to both parties. We require that $t_{lock} > t_{refund} > t_{claim}$. \\\\
+        To encrypt $x$, S creates a new secret key $k$ and performs the Enoding routine (cf. ), which produces $ex$ (encrypted $x$) and $hash_k$ (the cryptographic hash of $k$). Then, $S$ lockes up $p$ coins via the Locking Transaction $TX_{lock}$ to eventually fund one of $i \in (1, ..., c)$ new Refund Transactions $TX_{{refund}_i}$ ($TX_{lock}$  is used as input transaction for each $TX_{{refund}_i}$. By creating $TX_{{refund}_i}$ with the correct values, $S$ makes sure that these transactions and, therefore, $TX_{lock}$ remain unspendable for $B$ (cf. []). For the next step $S$ sends all $TX_{{refund}_i}$, including $S$'s signature for the out script's, to $B$. Note that this implicitly shares $ex$ with $B$. Finally $S$ publishes $TX_{lock}$ to the ledger. \\\\
+        $B$ receives all $TX_{{refund}_i}$ and extracts $ex'$ from the out scripts. We refer to the parsed encrypted data as $ex'$ because $B$ does not know if the encrypted data contains desired $x$ (results in $M_x$). $B$ then validates all refund transactions and checks for $TX_{lock}$ on the ledger. If no protocol violation is discovered, B proceeds. The actual data is already exchanged but without $k$ not accessible for B. To attain $k$, B creates the Key Exchange Transaction $TX_{exch}$ that locks $p$ coins through $hash_k$ and publishes it to the ledger. (Note that after $t_{claim}$ $B$ can unlock the funds. \\
+        $S$ waits for $TX_{exch}$ to appear on the ledger. If this does not happen until $t_{claim}$, $S$ assumes that $B$ aborted the protocol and waits until $t_{lock}$ to claim $TX_{lock}$ and leave the protocol. This could potentially fail if $TX_{lock}$ is already spent by $B$ and implies that one of the refund transactions $TX_{{refund}_i}$ got published to the ledger. (cf. []) If this is the case, $S$ claims $TX_{{refund}_i}$. $S$ is able to do this, because $t_{refund}$ is passed at this point. If $TX_{exch}$ does appear on the ledger, $S$ claims $p$ coins through $TX_{exch}$ by providing $k$ s.t. $H(k) = hash_k$. The exchange is finished for $S$ and $S$ only needs to wait until $t_{lock}$ to claim the locked coins in $TX_{lock}$ back. \\\\
+        $B$ waits for the spending of $TX_{exch}$ by $S$ to learn $k$. If this does not happen in time (until $t_{claim}$) $B$ assumes $S$ aborted the protocol, claims $TX_{exch}$ back and aborts. Otherwise, $B$ parses $k$ and decrypts $ex'$ through the Decoding routine and attains $x'$. If the expectation ($M_x$) is met, $x' = x$ and the exchange was successful. If this is not the case, the Decoding routine outputs the index $i$ of the (first) unexpected data chunk in $x'$. This enables $B$ to publish and claim $TX_{{refund}_i}$ by providing $k$. We will show this informally in the following section. 
+
 
         
         
@@ -433,7 +437,8 @@
             
             \item Round (B)
             \begin{enumerate}
-                \item B evaluates \textsf{ConsistencyCheck(}\textbf{TX$_{{refund}}$}\textsf{$, H(TX_{lock}), pk_S, pk_B, hash_k, M_x, \textsf{\textbf{ex}}, t_{refund}, p$)} and \textsf{IsOnLedger($TX_{lock}$)}. If one or more checks fail, B aborts and the exchange failed.
+                \item B parses $\textsf{\textbf{ex}}'$ from \textbf{TX$_{{refund}}$}.
+                \item B evaluates \textsf{ConsistencyCheck(}\textbf{TX$_{{refund}}$}\textsf{$, H(TX_{lock}), pk_S, pk_B, hash_k, M_x, \textsf{\textbf{ex}}', t_{refund}, p$)} and \textsf{IsOnLedger($TX_{lock}$)}. If one or more checks fail, B aborts and the exchange failed.
                 \item If $t_{refund}$ passed, B aborts and the exchange failed.
             \end{enumerate}
             
@@ -445,7 +450,7 @@
           \begin{enumerate}
           
           \begin{enumerate}
-             \setcounter{enumii}{2}
+             \setcounter{enumii}{3}
             \item B creates Key Exchange Transaction $TX_{exch}$ $\leftarrow$ \textsf{GenKeyExchangeTx($pk_S, pk_B, hash_k, t_{claim}, p$)}. $TX_{exch}$ is then published with \mbox{\textsf{PublishToLedger($TX_{exch}$)}}.
           \end{enumerate}
             
@@ -454,16 +459,16 @@
             \item Round (S)
             
             \begin{enumerate}
-            \item If $t_{claim}$ passed, S waits for $t_{lock}$ and reclaims $TX_{lock}$ via \textsf{Claim($TX_{lock}, \perp$)}, therefore, aborts and the exchange failed. 
+            \item If $t_{claim}$ passed, S waits for $t_{lock}$ and claims $TX_{lock}$ via \textsf{Claim($TX_{lock}, \perp$)}. If this fails and $TX_{lock}$ is already spent through one $TX_{{refund}_i} \in$ \textbf{TX$_{{refund}}$}, S claims this transaction via \textsf{Claim($TX_{{refund}_i}, \perp$)}. S, therefore, aborts and the exchange failed. 
             
-            \item S claims $TX_{exch}$ by running \textsf{Claim($TX_{exch}, k$)} s.t. $H(k) = hash_k$ and earns p coins.
+            \item S claims $TX_{exch}$ by running \textsf{Claim($TX_{exch}, k$)} and earns p coins.
             \end{enumerate}
             
             \item Round (B)
             \begin{enumerate}
             \item If $t_{claim}$ passed and $TX_{exch}$ unspent, B reclaims $TX_{exch}$ via \textsf{Claim($TX_{exch}, \perp$)}, therefore, aborts and the exchange failed. 
             
-            \item B extracts $k$ from $TX_{exch}$ and computes $(\textsf{\textbf{x}}, i)$ $\leftarrow$ \textsf{Decode(}\textsf{\textbf{ex}}\textsf{$, k, M_x$)}. 
+            \item B parses $k$ from $TX_{exch}$ and computes $(\textsf{\textbf{x}}', i)$ $\leftarrow$ \textsf{Decode(}$\textsf{\textbf{ex}}'$\textsf{$, k, M_x$)}. 
             \end{enumerate}
             
           \newcounter{enumTemp}
@@ -475,9 +480,9 @@
           \setcounter{enumi}{\theenumTemp}
             \begin{enumerate}
             \setcounter{enumii}{2}
-            \item If $i \neq \perp$ B publishes $TX_{{refund}_i}$ via \textsf{PublishToLedger($TX_{{refund}_i}$)} to implicitly claim $TX_{lock}$, therefore, aborts and the exchange failed. 
+            \item If $i \neq \perp$ B publishes $TX_{{refund}_i}$ via \textsf{PublishToLedger($TX_{{refund}_i}$)} to implicitly claim $TX_{lock}$. B runs \textsf{Claim($TX_{{refund}_i}, k$)} to ultimately secure the refund, therefore, aborts and the exchange failed. 
             
-            \item B concatenates all elements of $\textsf{\textbf{x}}$ to attain $\textsf{x}$ and the exchange was successful.
+            \item B concatenates all elements of $\textsf{\textbf{x}}'$ to attain $\textsf{x}' = \textsf{x}$ and the exchange was successful.
             \end{enumerate}
             
           \end{enumerate}
