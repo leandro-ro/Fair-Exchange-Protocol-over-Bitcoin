@@ -481,13 +481,28 @@
           \label{theProtocol}
         \end{protocol}
         
+        \newpage
+        
         \section{Security}
         \label{sec:Security}
-	    Informal security analysis - discuss various attack vectors.
+        In this section, we conduct an informal security analysis of the given protocol. We say that the protocol is secure if the \textit{seller security} property and \textit{buyer security} property hold. We assume the protocol is sender secure if it is guaranteed that the buyer B only learns the product \textsf{x}, if and only if B pays $p$ coins to seller S. We assume that the protocol is buyer secure if an honest B is ensured that if he pays $p$ coins to S, B will receive the expected product \textsf{x} or at least a compensation (refund) of $p$ coins. We will ignore transaction fees in the following. \\\\
+        Notice that our protocol consists of two main functionalities: On the one hand, there is the Key Exchange Transaction, and on the other hand, the \textit{refund functionality} consisting of the set of Refund Transactions funded by the Locking Transaction. The Key Exchange Transaction guarantees the \textit{seller security} property trivially if we assume the \textsf{Encoding} and \textsf{Decoding} algorithms' correctness (s.t. \textsf{Decode(Encode(}\textsf{x$, k$)}$, k, M_x$\textsf{)} = $($\textsf{x}$, \perp)$) and the security of the symmetric encryption scheme (cf. §\ref{sub:SymmetricEncryptionScheme}). The transaction enables S to share the secret key $k$ (that allows B to lean the product) atomically in exchange for $p$ coins. \\\\
+        Next, we will look into the \textit{buyer security}. Assume S is honest, then this property holds for the same reason the \textit{seller security} has, and B will receive the secret key $k$ and thereby is able to learn the expected product. Otherwise, if S is malicious, the \textit{buyer security} holds because one of the Refund Transactions is guaranteed to become spendable for B once the key exchange happened and $p$ coins were transferred to S. We will show that this is the case with the following examples. Note that each Refund Transaction out script resembles the decryption and hashing of a particular encrypted data chunk. The solved out script would prove S' misbehavior. It is only solvable if the correct secret key is provided by B and the computed hash does not equal the specific Merkle tree leave of \textsf{x}.
+        \begin{enumerate}
+            \item Let us assume $S$ tries to send a wrong secret key $k^*$. Its hash must be consistent across the Refund Transaction set because otherwise B would notice this in step 2b) and abort. If the hash is consistent, B creates the Key Exchange Transaction based on it in 2d) and will receive $k^*$ if S wants to claims the $p$ coins. Therefore, every Refund Transaction is spendable for B because the hash of $k^*$ matches, but the hash of the decoded data chunk inside the out script does not equal its expected Merkle tree leaf.
+
+            \item Let us assume S sends the correct key $k$ but manipulated the i-th data chunk of encrypted \textsf{\textbf{ex}}, s.t. B does not receive the expected \textsf{x} after decoding. In this case, B won't notice anything in the respective $i$-th Refund Transaction because the included Merkle tree leaf is still correct. Therefore the Key Exchange Transaction is published, spent by S and  B receives $k$.  The \textsf{Decoding} algorithm will output the manipulated data chunks index $i$ in step 4b). Thereby, the $i$-th Refund Transaction must be spendable because the hash of $k$ matches, but the hash of the decoded data chunk inside the out script does not equal the expected $i$-th Merkle tree leaf.
+
+            \item Another option for a malicious S to cheat would be by manipulating the expected Merkle tree leaves inside the Refund Transactions to make one of the two attacks above possible. Because the Merkle tree of \textsf{x} is public knowledge, this is not possible and is noticed by B in step 2b). 
+        \end{enumerate}
+        Because of the design of the Refund Transactions we consider the \textit{buyer security} property to be met. \\
+        Finally, we want to stress that correct timestamps (s.t. $t_{lock} > t_{refund} > t_{claim}$) are essential for the security of the protocol. Only under this condition, the \textit{refund functionality} works properly. Otherwise, the Refund Transactions could become unpublishable because there is no unspent input transaction. Also note, that after publishing one Refund Transaction, all others become unpublishable because the Locking Transaction is spent. Although S might behave honestly, B is eventually able to publish one of the Refund Transaction but cannot spend it. Therefore the Locking Transaction and each Refund Transaction must be claimable for S after the respective timelock passed. This is part of the following fairness discussion.
+
+
         
         \section{Fairness Discussion}
         \label{sec:FairnessDiscussion}
-	    Connect the findings of the Fairness section with the actual fairness of the finish protocol.
+	    Let us connect the findings of section \ref{sec:Fairness} with the fairness properties of the presented protocol.
 	    
 	\chapter{Implementation}
 	    TODO \\
