@@ -273,7 +273,7 @@
 		
 	\chapter{Our Construction}
 	   \label{ch:Construction}
-	   Our construction is heavily inspired by the FairSwap protocol (cf. §\ref{sec:FairSwap}). The intention is to enable the buyer to prove possible misbehavior of the seller instead of forcing the seller to prove his honesty. FairSwap is doing this with concise proofs of misbehavior validated by a single (to the exchange specific) smart contract on Ethereum. Our construction utilizes Bitcoin instead. Therefore, it is limited by the Bitcoins smart contract possibilities (cf. §\ref{sec:smartContractOptions}), most notably through its transactions' stateless nature. Hence, it is not possible to build one smart contract that can process all steps needed. We efficiently solve this by utilizing a few conditionally chained transactions. In the optimistic case, our construction requires two published transactions. The worst-case requires one additional published transaction.
+	   Our construction is heavily inspired by the FairSwap protocol (cf. §\ref{sec:FairSwap}). The intention is to enable the buyer to prove possible misbehavior of the seller instead of forcing the seller to prove his honesty. FairSwap is doing this with concise proofs of misbehavior validated by a single (to the exchange specific) smart contract on Ethereum. Our construction utilizes Bitcoin instead. Therefore, it is limited by the Bitcoins smart contract possibilities (cf. §\ref{sec:smartContractOptions}), most notably through its transactions' stateless nature. Hence, it is not possible to build one smart contract that can process all steps needed. We efficiently solve this by utilizing a few conditionally chained transactions. In the optimistic case, our construction requires two published transactions. The worst-case requires one additional published transaction. The actual exchange of the good via the ledger is reduced to a comparably small secret key through the symmetric encryption scheme (cf. §\ref{sub:SymmetricEncryptionScheme}) in order to minimize on-chain data and, therefore, transaction fees.
 	   
 	   \section{Transaction Types}
 	   \label{sec:OurTransactionTypes}
@@ -289,25 +289,9 @@
         The intention behind 1. is that a set of already (by $S$) signed unpublished transactions is spendable by $B$ with the confidence that $S$ covers the transaction's funding with published LTX (= $S$ provides a valid input transaction with LTX). Note that $S$ is in charge of which transactions can use LTX as input by his transaction-specific signatures, but $B$'s signature is ultimately required for spending.
         If funds are not used 2. enables $S$ to recover these after $t$ passed. Therefore, once the timelock expires, $B$ can no longer be confident that LTX can be used as a valid input transaction - even if a valid $sig_S$ is available to $B$. LTX is pictured in \mbox{figure \ref{fig:genLockingTx}}.
         
-        \begin{figure}
-            \begin{center}
-              \includegraphics[width=0.6\textwidth]{images/GenLockingTx.png}
-              \caption{\textsf{GenLockingTx}$(pk_S, pk_B, t, p)$}
-              \label{fig:genLockingTx}
-            \end{center}
-        \end{figure}
-        
         \subsection{Refund}
         \label{sub:RefundTx}
         The Refund Transaction (RTX) is intended to act as a form of concise proof of misbehavior. $S$ creates the transaction and implicitly commits to a (key, ciphertext) pair that results in a plaintext integrated into the out script. The script performs the symmetric encryption scheme introduced in section \ref{sub:SymmetricEncryptionScheme}. $B$ must provide a matching key to decrypt the ciphertext. If the result does not match with the integrated plaintext, the misbehavior of $S$ is proven, and $B$ can spend the transaction. Notably, RTX is unspendable if $S$ behaved honestly. Therefore, RTX also uses a timelock $t$ to enable the recovery of locked coins, equivalent to spending option 2. of LTX (cf. §\ref{sub:LockingTx}). RTX is pictured in \mbox{figure \ref{fig:genRefundTx}}.   
-        
-        \begin{figure}
-            \begin{center}
-              \includegraphics[width=0.6\textwidth]{images/GenRefundTx.png}
-              \caption{\textsf{GenRefundTx}$(hash_{inputTx}, pk_S, pk_B, hash_{key}, hash_{data}, enc_{data}, i, t, p)$}
-              \label{fig:genRefundTx}
-            \end{center}
-        \end{figure}
         
         \subsection{Key Exchange}
         \label{sub:KeyExchangeTx}
@@ -315,7 +299,23 @@
         
         \begin{figure}
             \begin{center}
-              \includegraphics[width=0.6\textwidth]{images/GenKeyExchangeTx.png}
+              \includegraphics[width=0.61\textwidth]{images/GenLockingTx.png}
+              \caption{\textsf{GenLockingTx}$(pk_S, pk_B, t, p)$}
+              \label{fig:genLockingTx}
+            \end{center}
+        \end{figure}
+        
+        \begin{figure}
+            \begin{center}
+              \includegraphics[width=0.61\textwidth]{images/GenRefundTx.png}
+              \caption{\textsf{GenRefundTx}$(hash_{inputTx}, pk_S, pk_B, hash_{key}, hash_{data}, enc_{data}, i, t, p)$}
+              \label{fig:genRefundTx}
+            \end{center}
+        \end{figure}
+        
+        \begin{figure}
+            \begin{center}
+              \includegraphics[width=0.61\textwidth]{images/GenKeyExchangeTx.png}
               \caption{\textsf{GenKeyExchangeTx}$(pk_S, pk_B, hash_{key}, t, p)$}
               \label{fig:genKeyExchangeTx}
             \end{center}
@@ -376,14 +376,10 @@
                 $l_i$ = $leaf_i$($M_x$)\;
                 $TX_i$ $\leftarrow$ \textsf{GenRefundTx($hash_{tx'}, pk_S, pk_B, hash_k, l_i,\textsf{ex}_i, i, t, p$)}\;
                 }
-                
                 \textbf{TX'} $ = ( TX_1, ..., TX_c)$\;
-                
                 \If{\normalfont{\textbf{TX'} \neq \textbf{TX}}}{
-                \Return $\textsf{false}$\;
-                }
-                \Return $\textsf{true}$\;
-                
+                \Return $\textsf{false}$\;}
+                \Return $\textsf{true}$;
                 \caption{\\\mbox{\textsf{ConsistencyCheck(}\textbf{TX}\textsf{$, hash_{tx'}, pk_S, pk_B, hash_{k}, M_x, \textbf{\textsf{ex}}, t, p$)}}}
             \end{algorithm}
         \end{minipage}    
@@ -392,11 +388,11 @@
         \newpage
         
         \section{Protocol Description}
-        We realize the exchange of a product $x$ between seller $S$ and the buyer $B$ for price $p$ in protocol 1[]. For the exchange, $x$ is split up into $c$ chunks of data. We assume that $|x| = m*c $ where $m$ is representing the size of each chunk. At the beginning of the protocol, the Merkle tree of $x$ ($M_x$) is available to both parties as public knowledge. The Merkle tree leaves are the hashed chunks of $x$. Therefore, $B$ does not learn anything about $x$, besides its size. (Note that $M_x$ differs for the same $x$ if a different split $c$ is chosen.) Additionally, three (to the start time of the protocol) relative timelocks $t_{lock}, t_{refund}, t_{claim}$ are known to both parties. We require that $t_{lock} > t_{refund} > t_{claim}$. \\\\
-        To encrypt $x$, S creates a new secret key $k$ and performs the Enoding routine (cf. ), which produces $ex$ (encrypted $x$) and $hash_k$ (the cryptographic hash of $k$). Then, $S$ lockes up $p$ coins via the Locking Transaction $TX_{lock}$ to eventually fund one of $i \in (1, ..., c)$ new Refund Transactions $TX_{{refund}_i}$ ($TX_{lock}$  is used as input transaction for each $TX_{{refund}_i}$. By creating $TX_{{refund}_i}$ with the correct values, $S$ makes sure that these transactions and, therefore, $TX_{lock}$ remain unspendable for $B$ (cf. []). For the next step $S$ sends all $TX_{{refund}_i}$, including $S$'s signature for the out script's, to $B$. Note that this implicitly shares $ex$ with $B$. Finally $S$ publishes $TX_{lock}$ to the ledger. \\\\
-        $B$ receives all $TX_{{refund}_i}$ and extracts $ex'$ from the out scripts. We refer to the parsed encrypted data as $ex'$ because $B$ does not know if the encrypted data contains desired $x$ (results in $M_x$). $B$ then validates all refund transactions and checks for $TX_{lock}$ on the ledger. If no protocol violation is discovered, B proceeds. The actual data is already exchanged but without $k$ not accessible for B. To attain $k$, B creates the Key Exchange Transaction $TX_{exch}$ that locks $p$ coins through $hash_k$ and publishes it to the ledger. (Note that after $t_{claim}$ $B$ can unlock the funds. \\
-        $S$ waits for $TX_{exch}$ to appear on the ledger. If this does not happen until $t_{claim}$, $S$ assumes that $B$ aborted the protocol and waits until $t_{lock}$ to claim $TX_{lock}$ and leave the protocol. This could potentially fail if $TX_{lock}$ is already spent by $B$ and implies that one of the refund transactions $TX_{{refund}_i}$ got published to the ledger. (cf. []) If this is the case, $S$ claims $TX_{{refund}_i}$. $S$ is able to do this, because $t_{refund}$ is passed at this point. If $TX_{exch}$ does appear on the ledger, $S$ claims $p$ coins through $TX_{exch}$ by providing $k$ s.t. $H(k) = hash_k$. The exchange is finished for $S$ and $S$ only needs to wait until $t_{lock}$ to claim the locked coins in $TX_{lock}$ back. \\\\
-        $B$ waits for the spending of $TX_{exch}$ by $S$ to learn $k$. If this does not happen in time (until $t_{claim}$) $B$ assumes $S$ aborted the protocol, claims $TX_{exch}$ back and aborts. Otherwise, $B$ parses $k$ and decrypts $ex'$ through the Decoding routine and attains $x'$. If the expectation ($M_x$) is met, $x' = x$ and the exchange was successful. If this is not the case, the Decoding routine outputs the index $i$ of the (first) unexpected data chunk in $x'$. This enables $B$ to publish and claim $TX_{{refund}_i}$ by providing $k$. We will show this informally in the following section. 
+        We realize the exchange of a product $\textsf{x}$ between seller S and the buyer B for price $p$ in protocol \ref{theProtocol}. In preperation for the exchange, $\textsf{x}$ is split up into $c$ chunks of data (= $\textsf{\textbf{x}}$). We assume that $|\textsf{\textbf{x}}| = m*c $ where $m$ is representing the size of each chunk. At the beginning of the protocol, the Merkle tree of $\textsf{\textbf{x}}$ ($M_x$) is available to both parties as public knowledge. The Merkle tree leaves are the hashed chunks of $\textsf{\textbf{x}}$. Therefore, B does not learn anything about $\textsf{\textbf{x}}$, besides its size. (Note that $M_x$ differs for the same $\textsf{\textbf{x}}$ if a different split $c$ is chosen.) Additionally, three (to the start time of the protocol) relative timelocks $t_{lock}, t_{refund}, t_{claim}$ are known to both parties. We require that $t_{lock} > t_{refund} > t_{claim}$. \\\\
+        To encrypt $\textsf{\textbf{x}}$, S creates a new secret key $k$ and performs the Encoding routine, which generates $\textsf{\textbf{ex}}$ (encrypted $\textsf{\textbf{x}}$) and $hash_k$ (the cryptographic hash of $k$). Then, S lockes up $p$ coins via the Locking Transaction $TX_{lock}$ to eventually fund one of $i \in (1, ..., c)$ new Refund Transactions $TX_{{refund}_i}$. ($TX_{lock}$  is used as input transaction for each $TX_{{refund}_i}$. By creating each $TX_{{refund}_i}$ with the correct values, S makes sure that these transactions remain unspendable for B.) We will refer to the $c$ Refund Transactions as \textbf{TX$_{{refund}}$}. For the next step S sends \textbf{TX$_{{refund}}$}, including S's signature for the out script's, to B. Note that this implicitly shares $\textsf{\textbf{ex}}$ with B. Finally S publishes $TX_{lock}$ to the ledger to fully initiate the protocol's refund functionality. This is visualized in figure \ref{fig:lockingRefundTx}. \\\\
+        B receives \textbf{TX$_{{refund}}$} and extracts $\textsf{\textbf{ex}}'$ from the out scripts. We refer to the parsed encrypted data as $\textsf{\textbf{ex}}'$ because B does not know if the encrypted data contains desired $\textsf{\textbf{x}}$ (results in $M_x$). B then validates all Refund Transactions and checks for $TX_{lock}$ on the ledger. If no protocol violation is discovered, B proceeds. The actual data is already exchanged but without $k$ not accessible for B. To attain $k$, B creates the Key Exchange Transaction $TX_{exch}$ that locks $p$ coins through $hash_k$ and publishes it to the ledger. \\\\
+        S waits for $TX_{exch}$ to appear on the ledger. If this does not happen until $t_{claim}$, S assumes that B aborted the protocol and waits until $t_{lock}$ to claim $TX_{lock}$ and leave the protocol. This could potentially fail if $TX_{lock}$ is already spent by B and implies that one of the Refund Transactions in \textbf{TX$_{{refund}}$} got published to the ledger. If this is the case, S claims $TX_{{refund}_i}$. S is able to do this, because $t_{refund}$ is passed at this point. If $TX_{exch}$ does appear on the ledger, S claims $p$ coins through $TX_{exch}$ by providing $k$ s.t. $H(k) = hash_k$. The exchange is finished for S and S only needs to wait until $t_{lock}$ to claim the locked coins in $TX_{lock}$ back. \\\\
+        B waits for the spending of $TX_{exch}$ by S to learn $k$. If this does not happen in time (until $t_{claim}$) B assumes S aborted the protocol, claims $TX_{exch}$ back and aborts. Otherwise, B parses $k$ and decrypts $\textsf{\textbf{ex}}'$ through the Decoding routine and attains $\textsf{x}'$. If the expectation ($M_x$) is met, $\textsf{x}' = \textsf{x}$ and the exchange was successful. If this is not the case, the Decoding routine outputs the index $i$ of the (first) unexpected data chunk in $\textsf{x}'$. This enables B to publish and claim $TX_{{refund}_i}$ by providing $k$ to its out script. We will show this informally in the following section \ref{sec:Security}. 
 
 
         
@@ -404,23 +400,21 @@
         \begin{figure}
             \begin{center}
                 \includegraphics[width=\textwidth]{images/locking_refund_tx_figure.png}
-              \caption{$n$ refund transactions funded by one locking transaction}
+              \caption{Transaction structure of the refund functionality}
               \label{fig:lockingRefundTx}
             \end{center}
             \end{figure}
             
         
         \begin{protocol}{The Fair Exchange Protocol}
-        Let $H(\cdot)$ be an collision resistant Hash-Function, $n$ the security parameter and $m$ the data chunk size. \\
-        \textit{Public information.} $(M_x, p, pk_S, pk_B, (t_{lock}, t_{refund}, t_{claim}))$ = (\textsf{MTree}(\textsf{\textbf{x}}), price, seller pk, buyer pk, timelocks) 
+        Let $H(\cdot)$ be an collision resistant Hash-Function, $n$ the security parameter and $m$ the data chunk size. \sbline
+        \textit{Public information.} $(M_x, p, pk_S, pk_B, t_{lock}, t_{refund}, t_{claim})$
         \sbline
         \textit{Seller \normalfont{S} Input.} $(\textsf{\textbf{x}} = (\textsf{x}_1, ..., \textsf{x}_c) \in (\{0,1\}^m)^c)$
         \sbline
         \textit{Buyer \normalfont{B} Input.} $()$
         \sbline
         \textit{The protocol:}
-        \sbline
-        \textbf{Setup:}
           \begin{enumerate}
             \item Round (S)
             \begin{enumerate}
@@ -445,8 +439,7 @@
           \newcounter{enumTemp}
           \setcounter{enumTemp}{\theenumi}
           \end{enumerate}
-          
-          \textbf{Exchange:}
+
           \begin{enumerate}
           
           \begin{enumerate}
@@ -475,7 +468,6 @@
           \setcounter{enumTemp}{\theenumi}
           \end{enumerate}
           
-          \textbf{Data Evaluation:}
           \begin{enumerate}
           \setcounter{enumi}{\theenumTemp}
             \begin{enumerate}
@@ -486,13 +478,16 @@
             \end{enumerate}
             
           \end{enumerate}
+          \label{theProtocol}
         \end{protocol}
         
-        \section{Fairness Discussion}
-	    Connect the findings of the Fairness section with the actual fairness of the finish protocol.
-	    
-	    \section{Security}
+        \section{Security}
+        \label{sec:Security}
 	    Informal security analysis - discuss various attack vectors.
+        
+        \section{Fairness Discussion}
+        \label{sec:FairnessDiscussion}
+	    Connect the findings of the Fairness section with the actual fairness of the finish protocol.
 	    
 	\chapter{Implementation}
 	    TODO \\
