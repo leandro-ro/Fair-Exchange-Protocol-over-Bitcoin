@@ -163,8 +163,8 @@
             \subsection{Merkle Tree}
             \label{sub:MerkleTree}
 	        The Merkle tree is a data structure that enables efficient data validation. It is a fundamental building block of many popular \textit{blockchains} like Bitcoin or Ethereum. \\
-            It is also called a hash tree because it utilizes cryptographic hash functions to create a tree of hash values with data chunks as leaves. The parent nodes combine their two children by concatenating and hashing again. We give an example of a Merkle tree in figure \ref{fig:merkleTreePrelims}. The root of the Merkle tree implicitly acts as a cryptographic fingerprint of all leaves combined. Note, that we hash the leaves before we create the tree. There are versions of Merkle trees that directly concatenate the leaves. \\
-            We will use the algorithms \textsf{Mtree}, \textsf{Mproof}, and \textsf{Mvrfy} also utilized by Dziembowski et al. in \cite{10.1145/3243734.3243857}. \textsf{Mtree} (Algorithm \ref{algo:Mtree}) generates the Merkle tree of a n-tuple $(x_1, ..., x_n)$. \textsf{Mproof} (Algorithm \ref{algo:Mproof}) takes value $i$ and generates the proof that $x_i$ is the $i$th leaf of \textsf{Mtree(x)}. \textsf{Mvrfy} (Algorithm \ref{algo:Mvrfy}) receives a Merkle root, a Merkle proof and a leaf and verifies if the leaf is indeed part of the corresponding Merkle tree based on the given proof. 
+            It is also called a hash tree because it utilizes cryptographic hash functions to create a tree of hash values with data chunks as leaves. The parent nodes combine their two children by concatenating and hashing again. We give an example of a Merkle tree in figure \ref{fig:merkleTreePrelims}. The root of the Merkle tree implicitly acts as a cryptographic fingerprint of all leaves combined. We denote the root of a Merkle tree $M$ as $root(M)$ and the $sibling$ of node $v$ is the value the node is being hashed with to create the $parent$ (e.g. in figure \ref{fig:merkleTreePrelims}: H$_1$ is the $sibling$ of H$_2$ with both having H$_5$ as $parent$). Further, we say that $leaf_i$($M$) results in the $i$-th leaf of Merkle tree $M$ (e.g. in figure \ref{fig:merkleTreePrelims}: $leaf_1$($M$)$=$ H$_1$). Note, that the leaves are hashed before the tree is created. There are utilizations of Merkle trees that directly concatenate the leaves. \\
+            We will use the algorithms \textsf{Mtree}, \textsf{Mproof}, and \textsf{Mvrfy} also utilized by Dziembowski et al. in \cite{10.1145/3243734.3243857}. \textsf{Mtree} (Algorithm \ref{algo:Mtree}) generates the Merkle tree of a n-tuple $(x_1, ..., x_n)$. For simplicity we require $n$ to be a power of two. \textsf{Mproof} (Algorithm \ref{algo:Mproof}) takes value $i$ and generates the proof that $x_i$ is the $i$-th leaf of \textsf{Mtree(x)}. \textsf{Mvrfy} (Algorithm \ref{algo:Mvrfy}) receives a Merkle root, a Merkle proof and a leaf and verifies if the leaf is indeed part of the corresponding Merkle tree based on the given proof. 
             
             \begin{figure}
             \begin{center}
@@ -174,61 +174,60 @@
             \end{center}
             \end{figure}
         
-        
         \begin{center}
-        \begin{tabularx}{\textwidth}{ b{0.48\textwidth} b{0.48\textwidth} }
+        \begin{minipage}[t]{4in}
             \begin{algorithm}[H]
-                \textbf{set} $R$\;
                  \If{$n = 1$}{
-                    $label(R) = H(x_1)$\;
+                    $R = H(x_1)$\;
                  }
                  \Else {
-                    $v_0^l = Mtree(x_1, ..., x_{n/2})$\;
-                    $v_0^r = Mtree(x_{n/2 + 1}, ..., x_n)$\;
-                    $label(R) = H(root(v_0^l)\|root(v_0^r))$\;
+                    $v_0^l = \textsf{Mtree}(x_1, ..., x_{n/2})$\;
+                    $v_0^r = \textsf{Mtree}(x_{n/2 + 1}, ..., x_n)$\;
+                    $R = H(root(v_0^l)\|root(v_0^r))$\;
                  }
-                \Return (MerkleTree $M$, Root $R$)\;
-                \caption{Merkle tree hash \\ \textsf{Mtree}(Leaves \textit{$x_1, ...,x_n$})}
+                \Return MerkleTree $M$ with root $R$\;
+                \caption{\mbox{Create Merkle tree: \textsf{Mtree}(Leaves \textit{$x_1, ...,x_n$})}}
                 \label{algo:Mtree}
             \end{algorithm}
-            \begin{algorithm}[H]
-                \textbf{set} $V = M[i]$ \;
+        \end{minipage}
+        \end{center}   
+        
+        \begin{center}
+        \begin{minipage}[t]{4in}    
+        \begin{algorithm}[H]
+                \textbf{set} $v = leaf_i$($M$) \;
                 \ForEach{$j \in [log_2(n)]$}{
-                  \textbf{set} $l_j = label$($sibling$ of $V$)\;
-                  \textbf{set} $v = parent$ of $V$\;
+                  \textbf{set} $l_j = sibling$ of $v$\;
+                  \textbf{set} $v = parent$ of $v$\;
                  }
                  
-                \Return (MerkleProof $(l_1, ..., l_d)$)\;
+                \Return MerkleProof $(l_1, ..., l_d)$\;
                 
-                \caption{Merkle tree proof \\ \textsf{Mproof}(MerkleTree $M$, Index $i$)}
+                \caption{Create Merkle tree proof: \\ \textsf{Mproof}(MerkleTree $M$, Index $i$)}
                 \label{algo:Mproof}
             \end{algorithm}
-     &
+        \end{minipage}
+        \end{center}
+        
+        \begin{center}
+        \begin{minipage}[t]{4in}
             \begin{algorithm}[H]
-                \ForEach{$l_i \in p$}{
+                \ForEach{$l_j \in p$}{
                     \If{$i/2^j = 0$ $ mod $ $2$}{
-                    $x = H(l_k\|x)$\;
-                        \If{$H($\textit{isPrgrmd}$(l_k\|x))$}{
-                        \Return \perp
-                        }
+                    $x = H(l_j\|x)$\;
                     } \Else{
-                    $x = H(x\|l_k)$\;
-                        \If{$H($\textit{isPrgrmd}$(x\|l_k))$}{
-                        \Return \perp
-                        }
+                    $x = H(x\|l_j)$\;
                     }}
                 \If{$x = h$}{
                     \Return $1$\;
                  } \Else{
                     \Return $0$\;
                  }
-                \caption{Merkle tree proof verification \\ \textsf{Mvrfy}(Leave $x_i$, MerkleProof $p = (l_1, ..., l_d)$, \\ Root $h$)}
+                \caption{Verify Merkle tree proof: \\ \textsf{Mvrfy}(Leave $x$, MerkleProof $p = (l_1, ..., l_d)$, Root $h$)}
                 \label{algo:Mvrfy}
             \end{algorithm}
-            
-        \end{tabularx}
+        \end{minipage}
         \end{center}
-        
         
         \subsection{Blockchain}
         \label{sub:Blockchain}
@@ -366,21 +365,21 @@
         \end{center}
         
         \subsection{Consistency Check}
-        The \textsf{ConsistencyCheck} algorithm takes a reference set of RTX \textbf{TX} and creates another set \textbf{TX'} with the input values. If these sets are identical, the check passed, and the algorithm returns \textsf{true}. Otherwise, the algorithm returns \textsf{false}. Note, that $leaf_i$($M_x$) results in the $i$-th leaf of Merkle tree $M_x$.
+        The \textsf{ConsistencyCheck} algorithm takes a reference set of RTX \textbf{TX} and creates another set \textbf{TX'} with the input values. If these sets are identical, the check passed, and the algorithm returns \textsf{true}. Otherwise, the algorithm returns \textsf{false}.
         
         \begin{center}
         \begin{minipage}[t]{4in}
             \begin{algorithm}[H]
                 $c = |\textbf{TX}|$\;
                 \ForEach{$i \in (1, ..., c)$}{
-                $l_i$ = $leaf_i$($M_x$)\;
+                $l_i$ = $leaf_i$($M_{\normalfont{\textsf{x}}}$)\;
                 $TX_i$ $\leftarrow$ \textsf{GenRefundTx($hash_{tx'}, pk_S, pk_B, hash_k, l_i,\textsf{ex}_i, i, t, p$)}\;
                 }
                 \textbf{TX'} $ = ( TX_1, ..., TX_c)$\;
                 \If{\normalfont{\textbf{TX'} \neq \textbf{TX}}}{
                 \Return $\textsf{false}$\;}
                 \Return $\textsf{true}$;
-                \caption{\\\mbox{\textsf{ConsistencyCheck(}\textbf{TX}\textsf{$, hash_{tx'}, pk_S, pk_B, hash_{k}, M_x, \textbf{\textsf{ex}}, t, p$)}}}
+                \caption{\\\mbox{\textsf{ConsistencyCheck(}\textbf{TX}\textsf{$, hash_{tx'}, pk_S, pk_B, hash_{k}, M_{\normalfont{\textsf{x}}}, \textbf{\textsf{ex}}, t, p$)}}}
             \end{algorithm}
         \end{minipage}    
         \end{center}
@@ -388,7 +387,7 @@
         \newpage
         
         \section{Protocol Description}
-        We realize the exchange of a product $\textsf{x}$ between seller S and the buyer B for price $p$ in protocol \ref{theProtocol}. In preperation for the exchange, $\textsf{x}$ is split up into $c$ chunks of data (= $\textsf{\textbf{x}}$). We assume that $|\textsf{\textbf{x}}| = m*c $ where $m$ is representing the size of each chunk. At the beginning of the protocol, the Merkle tree of $\textsf{\textbf{x}}$ ($M_x$) is available to both parties as public knowledge. The Merkle tree leaves are the hashed chunks of $\textsf{\textbf{x}}$. Therefore, B does not learn anything about $\textsf{\textbf{x}}$, besides its size. (Note that $M_x$ differs for the same $\textsf{\textbf{x}}$ if a different split $c$ is chosen.) Additionally, three (to the start time of the protocol) relative timelocks $t_{lock}, t_{refund}, t_{claim}$ are known to both parties. We require that $t_{lock} > t_{refund} > t_{claim}$. \\\\
+        We realize the exchange of a product $\textsf{x}$ between seller S and the buyer B for price $p$ in protocol \ref{theProtocol}. In preparation for the exchange, $\textsf{x}$ is split up into $c$ chunks of data (= $\textsf{\textbf{x}}$). We assume that $|\textsf{\textbf{x}}| = m*c $ where $m$ is representing the size of each chunk. At the beginning of the protocol, the Merkle tree of $\textsf{\textbf{x}}$ ($M_x$) is available to both parties as public knowledge. The Merkle tree leaves are the hashed chunks of $\textsf{\textbf{x}}$. Therefore, B does not learn anything about $\textsf{\textbf{x}}$, besides its size. (Note that $M_x$ differs for the same $\textsf{\textbf{x}}$ if a different split $c$ is chosen.) Additionally, three (to the start time of the protocol) relative timelocks $t_{lock}, t_{refund}, t_{claim}$ are known to both parties. We require that $t_{lock} > t_{refund} > t_{claim}$. \\\\
         To encrypt $\textsf{\textbf{x}}$, S creates a new secret key $k$ and performs the Encoding routine, which generates $\textsf{\textbf{ex}}$ (encrypted $\textsf{\textbf{x}}$) and $hash_k$ (the cryptographic hash of $k$). Then, S lockes up $p$ coins via the Locking Transaction $TX_{lock}$ to eventually fund one of $i \in (1, ..., c)$ new Refund Transactions $TX_{{refund}_i}$. ($TX_{lock}$  is used as input transaction for each $TX_{{refund}_i}$. By creating each $TX_{{refund}_i}$ with the correct values, S makes sure that these transactions remain unspendable for B.) We will refer to the $c$ Refund Transactions as \textbf{TX$_{{refund}}$}. For the next step S sends \textbf{TX$_{{refund}}$}, including S's signature for the out script's, to B. Note that this implicitly shares $\textsf{\textbf{ex}}$ with B. Finally S publishes $TX_{lock}$ to the ledger to fully initiate the protocol's refund functionality. This is visualized in figure \ref{fig:lockingRefundTx}. \\\\
         B receives \textbf{TX$_{{refund}}$} and extracts $\textsf{\textbf{ex}}'$ from the out scripts. We refer to the parsed encrypted data as $\textsf{\textbf{ex}}'$ because B does not know if the encrypted data contains desired $\textsf{\textbf{x}}$ (results in $M_x$). B then validates all Refund Transactions and checks for $TX_{lock}$ on the ledger. If no protocol violation is discovered, B proceeds. The actual data is already exchanged but without $k$ not accessible for B. To attain $k$, B creates the Key Exchange Transaction $TX_{exch}$ that locks $p$ coins through $hash_k$ and publishes it to the ledger. \\\\
         S waits for $TX_{exch}$ to appear on the ledger. If this does not happen until $t_{claim}$, S assumes that B aborted the protocol and waits until $t_{lock}$ to claim $TX_{lock}$ and leave the protocol. This could potentially fail if $TX_{lock}$ is already spent by B and implies that one of the Refund Transactions in \textbf{TX$_{{refund}}$} got published to the ledger. If this is the case, S claims $TX_{{refund}_i}$. S is able to do this, because $t_{refund}$ is passed at this point. If $TX_{exch}$ does appear on the ledger, S claims $p$ coins through $TX_{exch}$ by providing $k$ s.t. $H(k) = hash_k$. The exchange is finished for S and S only needs to wait until $t_{lock}$ to claim the locked coins in $TX_{lock}$ back. \\\\
@@ -480,8 +479,6 @@
           \end{enumerate}
           \label{theProtocol}
         \end{protocol}
-        
-        \newpage
         
         \section{Security}
         \label{sec:Security}
