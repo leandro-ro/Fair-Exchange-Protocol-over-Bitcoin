@@ -83,7 +83,7 @@
         \section{Bitcoin}
         \label{sec:BTC}
         In 2008 Satoshi Nakamoto proposed the first practical decentralized peer-to-peer currency system (commonly known as "cryptocurrency"), named Bitcoin (BTC) \cite{nakamoto2009bitcoin}. The premise of Bitcoin is a shared data structure maintained by a decentralized network of nodes. This data structure is made out of cryptographically chained blocks, the so-called \textit{blockchain} (cf. §\ref{sub:Blockchain}), that miners continuously work on extending. One new block added to the \textit{blockchain} allows for a certain amount of new payment transactions and simultaneously increases the integrity of the blocks before. Other cryptocurrencies might extend their \textit{blockchain} differently. However, in Bitcoin's case, this \textit{proof-of-work} approach is used, such that the \textit{blockchain}'s integrity is guaranteed, as long as the honest nodes control more than half of the networks computational power\footnote{Computational power is necessary to generate new \textit{blockchain} blocks - it is also known as \textit{hash rate}. If one party alone controls more than half of the \textit{hash rate} new blocks can easily be manipulated}. For the computational burden the miners take, they are compensated with newly generated Bitcoins and transaction fees. The result is a self-sustaining system that is decentralized and trustable. From a high level, Bitcoin can be considered as an emulated trusted bank without a single entity controlling it. The trust in Bitcoin is high because there were practically no successful attacks yet. This fact is essential for the acceptability of a decentralized currency system because no central institution could be held liable. Simultaneously this increases the acceptance of Bitcoins \textit{blockchain} to act as an TTP through smart contracts. The users' trust rests in the \textit{proof-of-work} consensus protocol that secures the validity of transactions and prevents double-spending. \\
-        It is notable that Bitcoins \textit{blockchain} only stores transactions of Bitcoins (and some metadata to secure the \textit{blockchain}) and only implicitly the user's balances. The name Bitcoin might be misleading here because there are no actual coins, only a traceable path of transactions that originate from a miner's reward. The amount of Bitcoin one person owns can be calculated by looking at every transaction this person received but did not spend jet. If a person wants to perform a Bitcoin transaction, it needs access to one key pair containing one public key and one private key. The public key is essentially the person's address, which enables him/her to receive Bitcoins. The private key is needed to send Bitcoins to other users' public keys. Because everybody can create arbitrary key-pairs without providing any personal information, Bitcoin provides some anonymity for its users. \\
+        It is notable that Bitcoins \textit{blockchain} stores transactions of Bitcoins (and some metadata to secure the \textit{blockchain}) and only implicitly the user's balances. The name Bitcoin might be misleading here because there are no actual coins, only a traceable path of transactions that originate from a miner's reward. The amount of Bitcoin one person owns can be calculated by looking at every transaction this person received but did not spend jet. If a person wants to perform a Bitcoin transaction, it needs access to one key pair containing one public key and one private key. The public key is essentially the person's address, which enables him/her to receive Bitcoins. The private key is needed to send Bitcoins to other users' public keys. Because everybody can create arbitrary key-pairs without providing any personal information, Bitcoin provides some anonymity for its users. \\
         The introduction of Bitcoin, especially the \textit{blockchain} concept, kickstarted many other cryptocurrencies and \textit{blockchain}-based applications. Still, Bitcoin is the most widely accepted cryptocurrency and remains the largest by market capitalization\footnote{Source: \url{https://coinmarketcap.com/} (14.12.2020)} - followed by Ethereum and XRP.
 
         \subsection{BTC Transactions}
@@ -138,6 +138,7 @@
         \end{center}
         
         \subsection{Bitcoin Cash}
+        \label{sec:BitcoinCash}
         Bitcoin Cash is a \textit{hard fork} of Bitcoin. In contrast to the usual BIPs that are implemented via \textit{soft fork}, there is the chance that the Bitcoin network is split over a major controversial BIP, which would make old blocks of the \textit{blockchain} incompatible. If no agreement is achieved and enough nodes of the network support the BIP, the part of the network agreeing could choose to extend the \textit{blockchain} with the new version on their own, while the other part of the network extends with the old protocol - resulting in a \textit{hard fork}. \\
         In 2017 this happened with Bitcoin Cash emerging from Bitcoin. Bitcoin Cash increased the block size limit from 1 MB to 8 MB. Additionally, Bitcoin Cash supporters did not support various BIPs to come, most prominently BIP141\footnote{https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki} (commonly known as \textit{SegWit}). The overall goal was to increase the possible transactions per time to use the cryptocurrency as a proper replacement for fiat money and not for investment purposes. In 2018 the block size limit increased again to 32 MB, enabling the currency to theoretically perform up-to 130 transactions per second (Bitcoin manages around 5 transactions per second). Bitcoin Cash also reintroduced various Bitcoin Script opcodes that were previously disabled by BIPs in Bitcoin. For this thesis, relevant ones are noted in table \ref{tbl:opcodes}. The extended opportunities of Bitcoin Cash over Bitcoin in the context of smart contracts are laid out in section \ref{sec:smartContractOptions}. \\\\
         Bitcoin Cash's fundamental advantage is the much higher throughput of transactions, which implicitly brings down the cost per transaction (= transaction fee). The general criticism is focused on the supposedly naive solution of increasing the block sizes instead of finding efficient off-chain solutions or improvements to the protocol itself. It is also noteworthy that Bitcoin's network contains many more nodes than Bitcoins Cash network and that Bitcoin enjoys a higher acceptance, therefore serves a broader marked.
@@ -282,8 +283,8 @@
         \label{sub:LockingTx}
         We define the Locking Transaction (LTX) as an extended version of a MultiSig Transaction (cf. §\ref{sub:BTCScript}). To spend LTX, there are two options:
         \begin{enumerate}
-	        \item Valid $sig_S$ and $sig_B$ are provided to the out script. Note that these signatures are dependent on the transaction that plans to spend LTX.
-	        \item Timelock $t$ passed and a valid $sig_S$ is provided.
+	        \item Valid signatures $sig_S$ and $sig_B$ are provided to the out script. Note that these signatures are dependent on the transaction that intends to spend LTX.
+	        \item Timelock $t$ passed and a valid signature $sig_S$ is provided.
         \end{enumerate}
         The intention behind 1. is that a set of already (by $S$) signed unpublished transactions is spendable by $B$ with the confidence that $S$ covers the transaction's funding with published LTX (= $S$ provides a valid input transaction with LTX). Note that $S$ is in charge of which transactions can use LTX as input by his transaction-specific signatures, but $B$'s signature is ultimately required for spending.
         If funds are not used 2. enables $S$ to recover these after $t$ passed. Therefore, once the timelock expires, $B$ can no longer be confident that LTX can be used as a valid input transaction - even if a valid $sig_S$ is available to $B$. LTX is pictured in \mbox{figure \ref{fig:genLockingTx}}.
@@ -507,15 +508,131 @@
         Finally, we do not see any mentionable advantage for a single party in terms of computational effort. Despite no heavy cryptographic task required to run our protocol, the computational effort is relatively balanced. 
 	    
 	\chapter{Implementation}
-	    TODO \\
-	    Details about the implementation
+	    In order to validate the presented transaction types and learn about their real-world costs, we exemplary implement all possible scenarios of the proposed protocol\footnote{\url{https://github.com/leandro-ro/bt-evaluation}}. Please note that the protocol is currently not feasible on Bitcoins blockchain because we require OP\_XOR and OP\_CAT to decrypt a data chunk inside a Refund Transaction. As we already showed in table \ref{tbl:opcodes}, these two opcodes are currently disabled in Bitcoin, although there is the chance that the opcodes are being reintroduced through a future BIP. To still be able to evaluate our protocol, we utilize Bitcoin Cash (cf. §\ref{sec:BitcoinCash}) instead, which allows the use of mentioned opcodes. What we learn here is directly transferable to Bitcoin itself because both blockchains run on the same Bitcoin Script language (cf. §\ref{sub:BTCScript}). Hence we do not need to change the implemented transactions if we want to run them on a future Bitcoin version that supports the required opcodes. In both cases, the transaction costs are measured in satoshi\footnote{Smallest unit of Bitcoin (Cash): 1 sat = 0,00000001 BTC/BCH} per byte; therefore, the single important metric we want to evaluate is the size of each transaction type. 
+	    
 	    \section{Tools}
+        We use JavaScript and a hand full of libraries to conduct the evaluation. Most notably, we utilize the bitcore-lib-cash\footnote{\url{https://github.com/bitpay/bitcore/tree/master/packages/bitcore-lib-cash}} library and the bitbox-sdk\footnote{\url{https://github.com/Bitcoin-com/bitbox-sdk}} for wallet instantiation and interaction with the blockchain. We use Bitcoin Cashes testnet to run all our scenarios on. This enables us to track our submitted transactions via a blockchain explorer\footnote{e.g., \url{https://www.blockchain.com/explorer?view=bch}}. We choose CashScript\footnote{\url{https://cashscript.org/}} to implement the transaction types on a high level for easier fault detection and better understanding. In this context we use meep\footnote{\url{https://github.com/gcash/meep}} for step-by-step transaction debugging. \\\\  
+        CashScript is already mentioned in section \ref{sec:smartContractOptions} but let us show how we realized our transaction types through exemplary creating a simple P2PKH transaction (we also utilize this transaction in our implementation): First we create a standard P2PKH transaction in CashScript syntax (listing \ref{lst:p2pkhCashScript}). We use this transaction inside our implementation by first compiling the CashScript file and then creating the transaction via its constructor (listing \ref{lst:cashScriptInUse}). Based on the arguments passed to the constructor, the CashScript library generates a transaction with the usual Bitcoin Script, which is equivalent to earlier listing \ref{fig:p2pkh}. After instantiating, we can interact with the transaction and spend it. \\
+	    
+	    \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+        \begin{lstlisting}[language=JavaScript, basicstyle=\footnotesize, caption= p2pkh.cash - Bitcoin \textit{P2PKH} in high-level CashScript, captionpos=b, backgroundcolor=\color{backcolour}, label=lst:p2pkhCashScript]
+        pragma cashscript ^0.5.0;
+
+        contract P2PKH(bytes20 pkh) {
+        // Require pk to match stored pkh and signature to match
+            function spend(pubkey pk, sig s) {
+                require(hash160(pk) == pkh);
+                require(checkSig(s, pk));
+            }
+        }
+        \end{lstlisting} \newpage
+    
+        \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+        \begin{lstlisting}[language=JavaScript, basicstyle=\footnotesize, caption= Compiling and executing CashScript \textit{P2PKH} via JavaScript , captionpos=b, backgroundcolor=\color{backcolour}, label=lst:cashScriptInUse]
+        // Compile a contract file
+        const P2PKH = CashCompiler.compileFile(path.join(__dirname, 'p2pkh.cash'));
+
+        const provider = new ElectrumNetworkProvider('testnet');
+        const contract = new Contract(P2PKH, [alicePkh], provider);
+        
+        const tx = await contract.functions
+        .spend(alicePk, new SignatureTemplate(alice))
+        .to('bitcoincash:qrhea03074073ff3zv9whh0nggxc7k03ssh8jv9mkx', 10000)
+        .send()
+        \end{lstlisting} \\
+	    
+	    Additionally we utilize merkletreejs\footnote{\url{https://github.com/miguelmota/merkletreejs}} for the implementation of our Decoding algorithm and crypto-js\footnote{\url{https://github.com/brix/crypto-js}} that is providing the SHA-256 hash function.
+	    
+	    
+	    \section{Scenarios}
+	    For this evaluation, we differentiate between five different scenarios. All these scenarios will always need to follow a specific transaction flow (chain of transactions). All paths are presented in figure \ref{fig:transactionFlow}. Note that due to the transactions out scripts and the requirement that an input transaction needs to be unspent, not all combinations are possible. For example, transaction c cannot exist alongside transaction f on the blockchain (we assume our security assumptions hold, and the transactions can only provide one output).
+	    \\\\
+	    We define the scenarios as follows:
+	    \begin{enumerate}
+            \item Scenario - The optimistic case: Seller provides the key to unlock the Key Exchange Transaction and reclaims the locked coins inside the Locking Transaction
+
+            \item Scenario - Seller aborts or is malicious: Seller does not provide the key. Therefore the Buyer reclaims his Key Exchange Transaction
+
+            \item Scenario - Seller is malicious: Seller provides manipulated data. Therefore the Buyer issues a Refund Transaction.
+            
+            \item Scenario - Buyer aborts or is malicious: Buyer does not publish the Key Exchange Transaction
+            
+            \item Scenario - Buyer malicious: Buyer does not publish a Key Exchange Transaction and publishes one (for the Buyer undependable) Refund Transaction
+        \end{enumerate}
+	    For a visual representation of each scenario, we refer to our evaluations GitHub repository\footnote{\url{https://github.com/leandro-ro/bt-evaluation}}.
+	    
 	    
 	    \section{Evaluation}
-	    Compare costs of protocol (computational costs \& fees) with FairSwap.
+	    As we already mentioned, the costs for a transaction directly result from its size. The transaction size is calculated from two parts. The first one is the transaction without the witness, which is always constant relative to the input transaction. The second one is the witness itself which size might vary based on our protocol parameters. Our protocol's main parameters are the size of the key (= $|key|$) and the size of the data chunks (= $|dataChunk|$). The amount of data chunks is not interesting for our evaluation because it does not affect the transactions' size in any way. 
+	    
+	    \subsection{Transaction Size}
+	    In table \ref{tab:txSizes} we determine the size of each transaction in Bytes. In the next step to evaluate the full transaction costs, we add the sizes together based on the specific scenario. Our results are displayed in table \ref{tab:scenarioSizes}. Note that the transaction flow does not necessarily mean that a certain party published the transaction. It rather indicates that the party must pay the transaction costs. This might also be the case if another party is responsible for the published transaction, e.g., transaction c in scenario 5., which is published by a malicious buyer and forces the seller to publish transaction g and therefore pay a transaction fee.
+	    
+	    \begin{table}[]
+        \centering
+        \begin{tabular}{l|l|l}
+        ID & Transaction Type & Size (in Byte)     \\ \hline
+        a  & Locking          & $241$                  \\
+        b  & Key Exchange     & $241$                  \\
+        c  & Refund           & $365$                  \\
+        d  & P2PKH            & $304$                  \\
+        e  & P2PKH            & $304 + |key|$          \\
+        f  & P2PKH            & $265$                  \\
+        g  & P2PKH            & $365 + |dataChunk|$  \\
+        h  & P2PKH            & $365 + |key| + |dataChunk|$
+        \end{tabular}
+        \caption{Transaction sizes relative to the key length (= $|key|$) and the chunk size (= $|dataChunk|$)}
+        \label{tab:txSizes}
+        \end{table}
+        
+        \begin{table}[]
+        \centering
+        \begin{tabular}{l|l|l|l|l}
+        Scenario & Tx Flow Seller         & Tx Flow Buyer & Seller Size (in Byte) & Buyer Size (in Byte)       \\ \hline
+        1.        & (a \rightarrow f), (e)          & (b)                    & $810 + |key|$          & $241$                       \\
+        2.        & (a \rightarrow f)               & (b \rightarrow d)      & $506$                  & $545$                       \\
+        3.        & (a), (e)                        & (b), (c \rightarrow h) & $545 + |key| $         & $971 + |key| + |dataChunk|$ \\
+        4.        & (a \rightarrow f)               & -                      & $506$                  & $0$                         \\
+        5.        & (a \rightarrow c \rightarrow g) & -                      & $971 + |dataChunk|$    & $0$                        
+        \end{tabular}
+        \caption{Accumulated transaction sizes based on the five scenarios}
+        \label{tab:scenarioSizes}
+        \end{table}
+	    
+	    \subsection{Protocol Fees}
+        Based on our findings in table \ref{tab:scenarioSizes} we can derive the actual scenario costs. On the day of writing, the average Bitcoin transaction costs are around 40 sat/Byte, and the average Bitcoin Cash transaction costs at 1 sat/Byte. Therefore a party needs to pay 0.00000040 BTC per Byte on Bitcoin or 0.00000001 BCH per Byte on Bitcoin Cash for submitting a transaction. We assume a Bitcoin price of 50000\$ and a Bitcoin Cash price of 500\$ and will use the optimistic case (scenario 1.) as an example with a key length of 128 Bits (= 8 Bytes). Based on this parameter, the exchange would cost the seller 0.00032720 BTC or 0.00000818 BCH and the buyer 0.00009640 BTC or 0.00000241 BCH in fees. This results in a fee of 16.36\$ or 0.00409\$ for the seller and 4.82\$ or 0.001205\$ for the buyer, respectively.
+	    
+	    \subsection{Results}
+	    We learn a few interesting attributes of the protocol through this evaluation.
+	    
+        \begin{enumerate}
+        
+        \item On the one hand, we can observe that the protocol transaction costs on Bitcoin itself are very high, making the protocol uninteresting for the exchange of low-cost items. On the other hand, we notice that Bitcoin Cash's transaction costs can almost be considered negligible in our case. Using Bitcoin Cash, our exchange protocol does make sense for low-cost items.
+        
+        \item The number of data chunks is not affecting the transaction costs. We can conclude that the item's size is only limited by the party's computational power and local storage, not by the blockchain (and the resulting transaction fees) in any way, which is desirable.
+        
+        \item The optimistic case of the protocol is independent of the size of the data chunks. This makes the protocol very interesting for semi-honest settings because the transaction fees will remain constant (assuming the key length remains the same).
+                    
+        \item If we assume an appropriate data chunk size (our implementation is technically limited to a maximum of 32 Bytes), the transaction fees are barely affected. 
+        
+        \item There are two scenarios (scenarios 4. and 5.) in which the buyer does not have to pay anything. This fact is the weak spot of the protocol because it enables a malicious buyer to exploit the protocol and harm the seller without fearing any financial consequences. We want to stress that there are possibilities to counteract this behavior in potential future work, e.g., by forcing the buyer into depositing money into the Locking Transaction at the beginning of a protocol run.
+                    
+        \end{enumerate}
+	    
+	    
+	    
+	    
+	    \begin{figure}
+            \begin{center}
+                \includegraphics[width=\textwidth]{images/transaction_flow.pdf}
+              \caption{Transaction flow of the proposed protocol}
+              \label{fig:transactionFlow}
+            \end{center}
+        \end{figure}
 	    
 	\chapter{Conclusion}
-    TODO \\
+	\label{sec:Conclusion}
+    In this thesis we proposed a protocol for the fair exchange of a digital good between two parties ontop of Bitcoin. 
 	
 	\newpage
     \bibliographystyle{unsrt}
